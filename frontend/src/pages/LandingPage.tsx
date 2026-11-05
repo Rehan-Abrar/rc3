@@ -2,7 +2,7 @@ import { useLayoutEffect, type CSSProperties } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { useAuth } from '../lib/auth'
-import { EvidenceScanner } from '../components/landing/EvidenceScanner'
+import { TalentNetwork } from '../components/landing/TalentNetwork'
 import { PipelineDemo } from '../components/landing/PipelineDemo'
 import { useReveal } from '../components/landing/useReveal'
 import '../components/landing/landing.css'
@@ -114,16 +114,17 @@ export function LandingPage() {
               </Link>
             </div>
 
-            <ul className="land-hero__facts land-hero__rise" style={reveal(2)}>
-              <li>Four weighted dimensions</li>
-              <li>Every score opens its quote</li>
-              <li>Humans make the call</li>
-            </ul>
           </div>
 
-          <div className="land-hero__art land-hero__rise" style={reveal(3)}>
-            <EvidenceScanner />
+          <div className="land-hero__art land-hero__rise" style={reveal(2)}>
+            <TalentNetwork />
           </div>
+
+          <ul className="land-hero__facts land-hero__rise" style={reveal(3)}>
+            <li>Four weighted dimensions</li>
+            <li>Every score opens its quote</li>
+            <li>Humans make the call</li>
+          </ul>
         </div>
       </header>
 
