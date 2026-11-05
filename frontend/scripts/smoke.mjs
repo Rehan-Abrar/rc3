@@ -17,6 +17,24 @@ page.on('console', (m) => {
   if (m.type() === 'error') errors.push(`console: ${m.text()}`)
 })
 
+
+const overflowErrors = []
+const mobileSweep = async (label, paths) => {
+  for (const width of [375, 768]) {
+    await page.setViewportSize({ width, height: 900 })
+    for (const path of paths) {
+      await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle' })
+      await page.waitForTimeout(250)
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      )
+      console.log(`overflow ${label} ${width}px ${path}: ${overflow}px`)
+      if (overflow > 0) overflowErrors.push(`${path} @${width}px overflows by ${overflow}px`)
+    }
+  }
+  await page.setViewportSize({ width: 1440, height: 960 })
+}
+
 const shot = async (name) => {
   await page.waitForTimeout(400)
   await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: false })
@@ -79,6 +97,23 @@ try {
   await page.goto(`${BASE}/recruiter/interviews`, { waitUntil: 'networkidle' })
   await shot('11-interviews')
 
+  // responsive sweep as the recruiter (no horizontal scroll allowed at 375 or 768)
+  await mobileSweep('recruiter', [
+    '/recruiter',
+    '/recruiter/jobs',
+    '/recruiter/jobs/new',
+    '/recruiter/jobs/1/applicants',
+    '/recruiter/applications/1',
+    '/recruiter/talent',
+    '/recruiter/interviews',
+    '/recruiter/analytics',
+  ])
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto(`${BASE}/recruiter/jobs/1/applicants`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+  await shot('16-mobile-applicants')
+  await page.setViewportSize({ width: 1440, height: 960 })
+
   // candidate journey
   await page.evaluate(() => localStorage.clear())
   await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' })
@@ -95,14 +130,11 @@ try {
 
   await page.goto(`${BASE}/candidate/resume`, { waitUntil: 'networkidle' })
   await shot('15-candidate-resume')
-
-  // mobile width check for horizontal scroll
+  await mobileSweep('candidate', ['/candidate', '/candidate/jobs', '/candidate/applications', '/candidate/resume'])
   await page.setViewportSize({ width: 375, height: 812 })
-  await page.goto(`${BASE}/recruiter/jobs/1/applicants`, { waitUntil: 'networkidle' })
+  await page.goto(`${BASE}/candidate/jobs`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(500)
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
-  console.log('mobile horizontal overflow px:', overflow)
-  await shot('16-mobile-applicants')
+  await shot('18-mobile-candidate')
 } catch (e) {
   errors.push(`flow: ${e.message}`)
 } finally {
