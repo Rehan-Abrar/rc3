@@ -1,6 +1,6 @@
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { ArrowUpRight, BriefcaseBusiness, CalendarClock, CheckCircle2, ClipboardList, Timer, Users } from 'lucide-react'
-import { analyticsApi } from '../../lib/api'
+import { analyticsApi, auditApi } from '../../lib/api'
 import { useAsync } from '../../lib/useAsync'
 import { Badge, Card, CardHeader, ErrorState, Skeleton, StatCard } from '../../components/ui/core'
 import { PageHeader } from '../../components/layout/AppShell'
@@ -27,6 +27,7 @@ const tooltipStyle = {
 
 export function AnalyticsPage() {
   const stats = useAsync(() => analyticsApi.overview())
+  const fairness = useAsync(() => auditApi.fairness(), [])
   const s = stats.data
 
   if (stats.error) return <Card><ErrorState message={stats.error} onRetry={stats.reload} /></Card>
@@ -55,7 +56,16 @@ export function AnalyticsPage() {
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
-          <CardHeader title="Applications by job" subtitle="Volume per open requisition" />
+          <CardHeader
+            title="Applications by job"
+            subtitle="Volume per open requisition"
+            actions={
+              <div className="flex items-center gap-3 text-micro text-muted">
+                <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-accent" aria-hidden /> Applications</span>
+                <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-good" aria-hidden /> Shortlisted</span>
+              </div>
+            }
+          />
           <div className="h-[240px] px-2 py-3">
             {stats.loading ? (
               <Skeleton className="h-full" />
@@ -97,6 +107,79 @@ export function AnalyticsPage() {
           </div>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader
+          title="Fairness audit"
+          subtitle="Protected attributes are stripped before scoring; swapping them must leave the score identical"
+          actions={
+            fairness.data ? (
+              fairness.data.passed
+                ? <Badge tone="good" dot>Audit passed · delta {fairness.data.delta}</Badge>
+                : <Badge tone="bad" dot>Audit failed</Badge>
+            ) : fairness.loading ? <Skeleton className="h-6 w-28" /> : null
+          }
+        />
+        {fairness.error ? (
+          <p className="px-4 py-3 text-xs text-bad">{fairness.error}</p>
+        ) : fairness.loading ? (
+          <div className="space-y-2 p-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
+        ) : fairness.data ? (
+          <div className="grid gap-4 p-4 lg:grid-cols-[1fr_1.2fr]">
+            <div className="flex flex-col">
+              <p className="text-xs leading-relaxed text-muted">{fairness.data.note}</p>
+              <ul className="mt-3 space-y-1.5">
+                {[
+                  'Name, gender, age, nationality and marital status are dropped before scoring.',
+                  'The same resume is scored twice with those fields swapped.',
+                  'Any delta above zero means the scoring path leaks a protected attribute.',
+                ].map((line) => (
+                  <li key={line} className="flex gap-2 text-micro leading-relaxed text-faint">
+                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-faint/60" aria-hidden />
+                    {line}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-auto grid grid-cols-3 gap-2">
+                <div className="rounded-lg border border-line bg-canvas/40 px-3 py-2 text-center">
+                  <p className="text-micro text-faint">Baseline</p>
+                  <p className="text-lg font-semibold text-ink tnum">{fairness.data.baseline}</p>
+                </div>
+                <div className="rounded-lg border border-line bg-canvas/40 px-3 py-2 text-center">
+                  <p className="text-micro text-faint">Perturbed</p>
+                  <p className="text-lg font-semibold text-ink tnum">{fairness.data.perturbed}</p>
+                </div>
+                <div className="rounded-lg border border-good/30 bg-good/10 px-3 py-2 text-center">
+                  <p className="text-micro text-good">Delta</p>
+                  <p className="text-lg font-semibold text-good tnum">{fairness.data.delta}</p>
+                </div>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[420px] text-left text-xs">
+                <thead>
+                  <tr className="border-b border-line text-micro uppercase tracking-wider text-faint">
+                    <th className="px-2 py-1.5 font-medium">Attribute</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Baseline</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Swapped</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Identical</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {fairness.data.checks.map((c) => (
+                    <tr key={c.attribute}>
+                      <td className="px-2 py-2 capitalize text-ink">{c.attribute}</td>
+                      <td className="px-2 py-2 text-right text-muted tnum">{c.baseline}</td>
+                      <td className="px-2 py-2 text-right text-muted tnum">{c.perturbed}</td>
+                      <td className="px-2 py-2 text-right">{c.identical ? <Badge tone="good">unchanged</Badge> : <Badge tone="bad">changed</Badge>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
+      </Card>
 
       <div className="grid gap-4 xl:grid-cols-[1fr_1.2fr]">
         <Card>

@@ -11,6 +11,7 @@ import type {
   InterviewQuestion,
   JobDetail,
   JobSummary,
+  Feedback,
   Note,
   StatusEvent,
   User,
@@ -29,6 +30,8 @@ export const store = {
   notes: [] as Note[],
   questions: [] as InterviewQuestion[],
   interviews: [] as Interview[],
+  feedback: [] as Feedback[],
+  decisions: [] as Array<{ interview_id: number; decision: 'selected' | 'rejected'; rationale: string; created_at: string }>,
   nextId: 1000,
 }
 

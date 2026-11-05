@@ -14,8 +14,11 @@ import type {
   JobDetail,
   JobInput,
   JobSummary,
+  Feedback,
   Note,
   RecommendedJob,
+  FairnessAudit,
+  DuplicatePair,
   Resume,
   Role,
   Score,
@@ -617,6 +620,37 @@ export const interviewApi = {
     }
     return interview
   },
+
+  async feedback(interviewId: number, body: { rating: number; strengths: string; concerns: string; recommendation: Feedback['recommendation'] }): Promise<Feedback> {
+    if (!USE_FIXTURES) return request<Feedback>(`/interviews/${interviewId}/feedback`, { method: 'POST', body: JSON.stringify(body) })
+    await delay(300)
+    const fb: Feedback = {
+      id: nextId(),
+      interview_id: interviewId,
+      interviewer_name: 'Nadia Rahman',
+      rating: body.rating,
+      strengths: body.strengths,
+      concerns: body.concerns,
+      recommendation: body.recommendation,
+      created_at: new Date().toISOString(),
+    }
+    store.feedback.push(fb)
+    return fb
+  },
+
+  async decision(interviewId: number, decision: 'selected' | 'rejected', rationale: string): Promise<{ ok: boolean }> {
+    if (!USE_FIXTURES) return request<{ ok: boolean }>(`/interviews/${interviewId}/decision`, { method: 'POST', body: JSON.stringify({ decision, rationale }) })
+    await delay(320)
+    store.decisions.push({ interview_id: interviewId, decision, rationale, created_at: new Date().toISOString() })
+    const it = store.interviews.find((i) => i.id === interviewId)
+    const app = it ? store.applications.find((a) => a.id === it.application_id) : null
+    if (app) {
+      const from = app.stage
+      app.stage = decision
+      store.events.push({ id: nextId(), application_id: app.id, actor_id: 1, actor_name: 'Nadia Rahman', from_stage: from, to_stage: decision, reason: rationale, created_at: new Date().toISOString() })
+    }
+    return { ok: true }
+  },
 }
 
 /* ------------------------------- analytics ----------------------------- */
@@ -702,6 +736,49 @@ export const talentApi = {
         matched: ['React', 'TypeScript'],
         score: 82,
       }))
+  },
+}
+
+/* --------------------------- audit / integrity -------------------------- */
+
+export const auditApi = {
+  async fairness(): Promise<FairnessAudit> {
+    if (!USE_FIXTURES) return request<FairnessAudit>('/audit/fairness')
+    await delay(400)
+    const base = 87.4
+    return {
+      passed: true,
+      baseline: base,
+      perturbed: base,
+      delta: 0,
+      checks: [
+        { attribute: 'name', baseline: base, perturbed: base, identical: true },
+        { attribute: 'gender', baseline: base, perturbed: base, identical: true },
+        { attribute: 'age', baseline: base, perturbed: base, identical: true },
+        { attribute: 'nationality', baseline: base, perturbed: base, identical: true },
+        { attribute: 'marital status', baseline: base, perturbed: base, identical: true },
+      ],
+      note: 'Protected attributes are stripped before scoring. Swapping them leaves the score unchanged because no protected field reaches the model or the embeddings.',
+    }
+  },
+
+  async duplicates(): Promise<DuplicatePair[]> {
+    if (!USE_FIXTURES) return request<DuplicatePair[]>('/talent/duplicates')
+    await delay(320)
+    return [
+      {
+        keep: { id: 3, name: 'Daniel Osei', email: 'daniel.osei@example.com' },
+        duplicate: { id: 7, name: 'D. Osei', email: 'd.osei@example.com' },
+        reason: 'Same phone number and 78% resume text similarity',
+        similarity: 0.78,
+      },
+    ]
+  },
+
+  async merge(keepId: number, mergeId: number): Promise<{ ok: boolean }> {
+    if (!USE_FIXTURES) return request<{ ok: boolean }>('/talent/merge', { method: 'POST', body: JSON.stringify({ keep_id: keepId, merge_id: mergeId }) })
+    await delay(400)
+    return { ok: true }
   },
 }
 

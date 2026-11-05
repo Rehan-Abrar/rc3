@@ -135,7 +135,27 @@ export function ApplicationDetailPage() {
             <CardHeader
               title="Evidence-based assessment"
               subtitle={assessment ? scoreBandLabel(assessment) : 'Not assessed yet'}
-              actions={assessment && <ScoreNumber score={assessment} size="lg" />}
+              actions={
+                <>
+                  {assessment && <ScoreNumber score={assessment} size="lg" />}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    loading={detail.loading}
+                    onClick={async () => {
+                      try {
+                        await applications.reassess(appId)
+                        push('Assessment recomputed from the resume evidence.')
+                        detail.reload()
+                      } catch (e) {
+                        push(e instanceof Error ? e.message : 'Could not recompute the assessment.', 'error')
+                      }
+                    }}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" /> Recompute
+                  </Button>
+                </>
+              }
             />
             {!assessment ? (
               <EmptyState title="No assessment" body="Run the assessment to see weighted scores and resume evidence." />
