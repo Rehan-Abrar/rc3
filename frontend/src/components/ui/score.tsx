@@ -15,9 +15,20 @@ const toneText: Record<Tone, string> = {
 export function ScoreNumber({ score, size = 'md' }: { score: Score | null; size?: 'sm' | 'md' | 'lg' }) {
   if (!score) return <span className="text-sm text-faint">—</span>
   if (score.insufficient_evidence) {
+    // Show the number AND the caveat: hiding it makes ranked lists look broken and
+    // hides the ordering recruiters rely on, but the score still deserves a warning.
     return (
-      <span className={cn('inline-flex items-center gap-1.5 rounded-md border border-line bg-elevated/60 px-2 py-1 font-medium text-muted', size === 'sm' ? 'text-micro' : 'text-xs')}>
-        <AlertTriangle className="h-3 w-3" /> Evidence thin
+      <span className="inline-flex items-center justify-end gap-1.5">
+        <span className={cn('font-semibold tracking-tight tnum text-muted', size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-3xl' : 'text-xl')}>
+          {Math.round(score.overall)}
+          <span className="ml-0.5 text-xs font-normal text-faint">/100</span>
+        </span>
+        <span
+          title="Too little verified evidence for a confident score"
+          className="inline-flex items-center gap-1 rounded-md border border-line bg-elevated/60 px-1.5 py-0.5 text-micro font-medium text-muted"
+        >
+          <AlertTriangle className="h-3 w-3" /> thin
+        </span>
       </span>
     )
   }
