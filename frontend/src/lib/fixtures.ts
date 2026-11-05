@@ -42,6 +42,8 @@ store.applications = [
   { id: 4, job_id: 1, candidate_id: 5, resume_id: 4, stage: 'parsed', created_at: iso(1, 16), updated_at: iso(1, 16), override_score: null, override_reason: null },
   { id: 5, job_id: 2, candidate_id: 2, resume_id: 5, stage: 'submitted', created_at: iso(1, 11), updated_at: iso(1, 11), override_score: null, override_reason: null },
   { id: 6, job_id: 2, candidate_id: 4, resume_id: 3, stage: 'assessed', created_at: iso(1, 9), updated_at: iso(1, 11), override_score: null, override_reason: null },
+  // Duplicate of application 2: the same CV from a second account.
+  { id: 7, job_id: 1, candidate_id: 7, resume_id: 6, stage: 'submitted', created_at: iso(1, 8), updated_at: iso(1, 8), override_score: null, override_reason: null },
 ]
 
 const event = (appId: number, from: Application['stage'] | null, to: Application['stage'], reason: string | null, daysAgo: number, hour = 9): StatusEvent => ({
@@ -70,6 +72,7 @@ store.events = [
   event(3, 'parsed', 'assessed', null, 1, 15),
   event(4, null, 'submitted', null, 1, 16),
   event(4, 'submitted', 'parsed', null, 1, 16),
+  event(7, null, 'submitted', null, 1, 8),
 ]
 
 store.notes = [

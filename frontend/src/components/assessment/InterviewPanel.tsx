@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CalendarPlus, CalendarClock, MapPin, Star, TriangleAlert } from 'lucide-react'
+import { CalendarPlus, CalendarClock, CheckSquare, MapPin, Star, TriangleAlert } from 'lucide-react'
 import { interviewApi } from '../../lib/api'
 import type { Interview, InterviewType } from '../../lib/types'
 import { useAsync } from '../../lib/useAsync'
@@ -131,7 +131,7 @@ export function InterviewPanel({ applicationId, candidateName, jobTitle }: { app
                   <Star className="h-3 w-3" /> Feedback
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => { setDecideFor(i.id); setDecision('selected'); setRationale('') }}>
-                  Record decision
+                  <CheckSquare className="h-3 w-3" /> Decide
                 </Button>
               </div>
             </li>

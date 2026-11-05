@@ -18,6 +18,7 @@ export const resumes: Resume[] = [
   makeResume(3, 4, 'marco-silva.pdf', RESUME_MARCO, 4),
   makeResume(4, 5, 'tomas-berg.pdf', RESUME_TOMAS, 3),
   makeResume(5, 2, 'ayesha-khan-frontend.pdf', RESUME_AYESHA_FE, 2),
+  makeResume(6, 7, 'daniel-o-cv.pdf', RESUME_DANIEL, 1),
 ]
 
 /* ----------------------------- assessments ----------------------------- */

@@ -44,8 +44,25 @@ try {
   await page.waitForTimeout(700)
   await shot('06-applicant-evidence')
 
+  // duplicate detection -> explicit human-confirmed merge
+  await page.getByRole('button', { name: 'Review', exact: true }).click()
+  await page.waitForTimeout(300)
+  await shot('06b-duplicate-merge')
+  await page.getByRole('button', { name: 'Confirm merge' }).click()
+  await page.waitForTimeout(1000)
+
   await page.goto(`${BASE}/recruiter/applications/1`, { waitUntil: 'networkidle' })
   await shot('07-application-detail')
+
+  // recompute assessment, then open the human decision dialog (cancelled)
+  await page.getByRole('button', { name: /Recompute/ }).click()
+  await page.waitForTimeout(900)
+  await page.getByRole('button', { name: 'Decide' }).first().click()
+  await page.waitForTimeout(300)
+  await page.waitForTimeout(300)
+  await shot('07b-decision-dialog')
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(200)
 
   await page.goto(`${BASE}/recruiter/analytics`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(600)
