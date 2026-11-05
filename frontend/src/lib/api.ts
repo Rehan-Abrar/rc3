@@ -346,6 +346,13 @@ export const jobs = {
 
 /* ------------------------------- resumes ------------------------------- */
 
+/** Direct browser URL for the stored PDF/DOCX (token in the query so a plain link works). */
+export const resumeFileUrl = (id: number) => {
+  if (USE_FIXTURES) return ''
+  const token = getToken()
+  return `${BASE}/resumes/${id}/file${token ? `?token=${encodeURIComponent(token)}` : ''}`
+}
+
 export const resumeApi = {
   async listMine(): Promise<Resume[]> {
     if (!USE_FIXTURES) return request<Resume[]>('/resumes/mine')
@@ -362,7 +369,7 @@ export const resumeApi = {
     }
     await delay(1100)
     const name = file.name.toLowerCase()
-    if (!name.endsWith('.pdf')) fail(422, 'Only PDF resumes are supported. Export your CV as a PDF and try again.')
+    if (!/\.(pdf|docx)$/.test(name)) fail(422, 'Only PDF or DOCX resumes are supported.')
     if (file.size === 0) fail(422, 'That file is empty. Choose a PDF with readable text.')
     const user = userFromToken(getToken())
     if (!user) fail(401, 'Session expired. Please sign in again.')

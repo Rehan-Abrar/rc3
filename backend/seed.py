@@ -1,16 +1,18 @@
-"""Idempotent demo dataset: 1 recruiter, 3 candidates, real PDFs, 1 job, assessments.
+"""Idempotent demo dataset: 1 recruiter, real + synthetic candidates, 2 jobs, assessments.
 
 Run:  python seed.py --reset
 """
 import argparse
 import json
 import sys
+import time
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import fitz
 
 import models as m
-from config import DATA_DIR
+from config import BASE_DIR, DATA_DIR
 from db import Base, SessionLocal, engine
 from security import hash_password
 from services import assess as assess_svc
@@ -23,6 +25,15 @@ CANDIDATES = [
     ("candidate@hire.dev", "demo1234", "Ayesha Khan", "strong"),
     ("bilal@rc3.dev", "CandidatePass123", "Bilal Ahmed", "partial"),
     ("sana@rc3.dev", "CandidatePass123", "Sana Iqbal", "adjacent"),
+]
+
+# Real CVs shipped in the repo (../CVs). Seeded onto a second job so the demo shows both a
+# synthetic backend pipeline and real PDF/DOCX documents with verifiable quotes.
+CV_DIR = Path(BASE_DIR).resolve().parent / "CVs"
+REAL_CVS = [
+    ("rehan@rc3.dev", "demo1234", "Rehan Abrar", "Rehan_Abrar_CV.pdf"),
+    ("ubaid@rc3.dev", "demo1234", "Ubaid Ur Rehmaan Dar", "Ubaid_Ur_Rehmaan_CV.docx"),
+    ("mustafa@rc3.dev", "demo1234", "Muhammad Mustafa", "Mustafa_CV.pdf"),
 ]
 
 RESUMES = {
@@ -145,6 +156,97 @@ def build_job(db, recruiter):
     return job
 
 
+def build_product_job(db, recruiter):
+    """Second job, tuned to the real CVs in ../CVs (React/TypeScript/UI)."""
+    job = db.query(m.Job).filter_by(title="Product Engineer (React + TypeScript)").one_or_none()
+    if job:
+        return job
+    job = m.Job(
+        recruiter_id=recruiter.id, title="Product Engineer (React + TypeScript)",
+        department="Product Engineering", location="Lahore, PK", employment_type="full_time",
+        salary_min=120000, salary_max=220000, status="open",
+        description=("We are hiring a Product Engineer to build responsive, accessible product UI. "
+                     "You will work in React and TypeScript with Tailwind CSS, consume REST APIs, "
+                     "and collaborate with design on Figma handoffs. Experience with Git-based "
+                     "collaboration is required; Python and SQL are a plus. "
+                     "Bachelor's degree in Computer Science required."))
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    reqs = [("React", "skill", "required", 1.0, None),
+            ("TypeScript", "skill", "required", 1.0, None),
+            ("Tailwind CSS", "skill", "required", 1.0, None),
+            ("REST API", "skill", "required", 1.0, None),
+            ("Git", "skill", "required", 1.0, None),
+            ("Figma", "skill", "preferred", 0.4, None),
+            ("Python", "skill", "preferred", 0.4, None),
+            ("SQL", "skill", "preferred", 0.4, None),
+            ("BS Computer Science", "qualification", "required", 1.0, None)]
+    for label, kind, imp, weight, years in reqs:
+        db.add(m.JobRequirement(job_id=job.id, kind=kind, label=label,
+                                canonical=skills.canonical(label), importance=imp,
+                                weight=weight, min_years=years,
+                                evidence_hint="product UI" if label == "React" else None))
+    db.commit()
+    db.refresh(job)
+    return job
+
+
+def seed_real_cvs(db, job) -> None:
+    """Attach the real PDFs/DOCX from ../CVs to fresh candidate accounts and assess them."""
+    for email, pwd, name, cv_name in REAL_CVS:
+        source = CV_DIR / cv_name
+        if not source.exists():
+            print(f"  skip {name}: {source} not found")
+            continue
+        cand = get_or_create_user(db, email, pwd, name, role="candidate")
+        existing = db.query(m.Resume).filter_by(candidate_id=cand.id).first()
+        if existing:
+            continue
+        suffix = source.suffix.lower()
+        target_name = f"real_{cand.id}{suffix}"
+        target = DATA_DIR / "resumes" / target_name
+        (DATA_DIR / "resumes").mkdir(parents=True, exist_ok=True)
+        target.write_bytes(source.read_bytes())
+        raw, pages = pdf.extract_any(target)
+        status, err = pdf.classify(raw)
+        profile, mode = None, "heuristic"
+        if status == "ok":
+            for _attempt in range(3):  # a transient 429 must not leave demo data in fallback mode
+                profile, mode = extract.extract(raw)
+                if mode == "groq":
+                    break
+                time.sleep(4)
+        r = m.Resume(candidate_id=cand.id, filename=cv_name, stored_path=target_name,
+                     mime="application/pdf" if suffix == ".pdf" else
+                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                     size_bytes=target.stat().st_size, page_count=pages, raw_text=raw,
+                     parse_status=status, parse_error=err,
+                     extracted_json=extract.dumps(profile) if profile else None)
+        db.add(r)
+        db.commit()
+        db.refresh(r)
+        print(f"  parsed {name} ({suffix[1:]}): status={status} extract={mode} "
+              f"skills={len((profile or {}).get('skills') or [])}")
+        if status != "ok":
+            continue
+        app = m.Application(job_id=job.id, candidate_id=cand.id, resume_id=r.id, stage="submitted")
+        db.add(app)
+        db.flush()
+        db.add(m.StatusEvent(application_id=app.id, actor_id=cand.id, from_stage=None,
+                             to_stage="submitted", reason="Candidate applied"))
+        db.commit()
+        db.refresh(app)
+        a = None
+        for _attempt in range(3):
+            a = assess_svc.run_assessment(db, app, cand.id)
+            if a.ai_mode == "groq":
+                break
+            time.sleep(4)
+        print(f"  assessed {name}: overall={a.overall} skills={a.skills_score} "
+              f"ai={a.ai_mode} confidence={a.confidence}")
+
+
 def main(reset: bool = False) -> None:
     if reset:
         Base.metadata.drop_all(bind=engine)
@@ -161,11 +263,17 @@ def main(reset: bool = False) -> None:
             path = DATA_DIR / "resumes" / filename
             raw, pages = pdf.extract_text(path)
             status, err = pdf.classify(raw)
-            profile, mode = extract.extract(raw) if status == "ok" else (None, "heuristic")
-            r = m.Resume(candidate_id=cand.id, filename=filename, size_bytes=path.stat().st_size,
+            profile, mode = None, "heuristic"
+            if status == "ok":
+                for _attempt in range(3):  # a transient 429 must not leave demo data in fallback mode
+                    profile, mode = extract.extract(raw)
+                    if mode == "groq":
+                        break
+                    time.sleep(4)
+            r = m.Resume(candidate_id=cand.id, filename=filename, stored_path=filename,
+                         mime="application/pdf", size_bytes=path.stat().st_size,
                          page_count=pages, raw_text=raw, parse_status=status, parse_error=err,
                          extracted_json=extract.dumps(profile) if profile else None)
-            db.add(r)
             db.add(r)
             db.commit()
             db.refresh(r)
@@ -181,13 +289,23 @@ def main(reset: bool = False) -> None:
                                  to_stage="submitted", reason="Candidate applied"))
             db.commit()
             db.refresh(app)
-            a = assess_svc.run_assessment(db, app, cand.id)
+            a = None
+            for _attempt in range(3):
+                a = assess_svc.run_assessment(db, app, cand.id)
+                if a.ai_mode == "groq":
+                    break
+                time.sleep(4)
             print(f"  assessed {name}: overall={a.overall} skills={a.skills_score} "
                   f"ai={a.ai_mode} confidence={a.confidence}")
         print("seed complete")
         print(f"recruiter: {RECRUITER[0]} / {RECRUITER[1]}")
         for email, pwd, name, _k in CANDIDATES:
             print(f"candidate: {email} / {pwd}")
+        product_job = build_product_job(db, rec)
+        seed_real_cvs(db, product_job)
+        print(f"jobs: {job.title} (id {job.id}) | {product_job.title} (id {product_job.id})")
+        for email, pwd, name, _cv in REAL_CVS:
+            print(f"real CV candidate: {email} / {pwd}")
     finally:
         db.close()
 

@@ -137,6 +137,10 @@ def adjudicate(reqs: list[dict], chunks: list[dict], masked: str) -> tuple[dict[
         verdicts[rid] = {"status": status, "reason": (row.get("reason") or "")[:400],
                          "quote": quote, "start": start, "end": end,
                          "support": "verified" if support.startswith("verified") else support}
+    if reqs and not verdicts:
+        # An empty/degraded completion must never be scored as "no evidence at all":
+        # that would fail a candidate for a transport problem. Surface it instead.
+        raise llm.AIUnavailable("adjudication returned no usable verdicts")
     return verdicts, (data.get("summary") or "")
 
 

@@ -11,7 +11,7 @@ import {
   Star,
   XCircle,
 } from 'lucide-react'
-import { applications } from '../../lib/api'
+import { applications, resumeFileUrl } from '../../lib/api'
 import type { ApplicationDetail, Stage } from '../../lib/types'
 import { useAsync } from '../../lib/useAsync'
 import { Badge, Button, Card, CardHeader, Dialog, EmptyState, ErrorState, Field, Skeleton, Textarea } from '../../components/ui/core'
@@ -223,6 +223,14 @@ export function ApplicationDetailPage() {
                 <div className="rounded-lg border border-line bg-canvas/50 p-2.5">
                   <p className="flex items-center gap-2 text-ink">
                     <FileText className="h-3.5 w-3.5 text-faint" /> {a.resume.filename}
+                    <a
+                      href={resumeFileUrl(a.resume.id)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ml-auto text-micro font-medium text-accent hover:underline"
+                    >
+                      View file
+                    </a>
                   </p>
                   <p className="mt-0.5 text-micro text-faint">
                     {a.resume.page_count} page(s) · {bytes(a.resume.size_bytes)} · parse {a.resume.parse_status}

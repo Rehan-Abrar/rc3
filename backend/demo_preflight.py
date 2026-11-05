@@ -166,7 +166,36 @@ def main():
     check("duplicates endpoint", status == 200 and isinstance(duplicates, list),
           str(len(duplicates or [])) + " pairs")
 
-    print("10. candidate view hides private notes")
+    print("10. real CVs (PDF + DOCX) and document viewing")
+    status, jobs2 = call("GET", "/jobs", token=token)
+    product = next((j for j in jobs2 if "Product Engineer" in j["title"]), None)
+    check("second job seeded", bool(product), product["title"] if product else "missing")
+    if product:
+        status, real_rows = call("GET", "/jobs/" + str(product["id"]) + "/applicants", token=token)
+        names = [r["candidate"]["name"] for r in real_rows]
+        check("three real-CV applicants", len(real_rows) == 3, ", ".join(names))
+        check("PDF and DOCX both parsed",
+              any(r["resume_filename"].endswith(".pdf") for r in real_rows)
+              and any(r["resume_filename"].endswith(".docx") for r in real_rows),
+              ", ".join(r["resume_filename"] for r in real_rows))
+        check("real CVs scored with evidence",
+              all((r["score"] or {}).get("ai_mode") == "groq" for r in real_rows),
+              str([(r["score"] or {}).get("overall") for r in real_rows]))
+        viewed = 0
+        for row in real_rows:
+            status, _unused = (0, None)
+            url = BASE + "/resumes/" + str(row["resume_id"]) + "/file?token=" + token
+            try:
+                with urllib.request.urlopen(url, timeout=60) as resp:
+                    blob = resp.read()
+                    if resp.status == 200 and len(blob) > 5000:
+                        viewed += 1
+            except urllib.error.HTTPError:
+                pass
+        check("every original CV downloads", viewed == len(real_rows),
+              str(viewed) + "/" + str(len(real_rows)) + " files")
+
+    print("11. candidate view hides private notes")
     status, candidate_auth = call("POST", "/auth/login",
                                   {"email": CANDIDATE[0], "password": CANDIDATE[1]})
     candidate_token = candidate_auth.get("token")

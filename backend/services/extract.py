@@ -68,27 +68,53 @@ _FALLBACK_SKILLS = [
 ]
 
 
+def _normalized_with_map(text: str) -> tuple[str, list[int]]:
+    """Collapse whitespace to single spaces, remembering each char's index in `text`."""
+    out: list[str] = []
+    index: list[int] = []
+    previous_space = False
+    for i, ch in enumerate(text):
+        if ch.isspace():
+            if not previous_space:
+                out.append(" ")
+                index.append(i)
+                previous_space = True
+            continue
+        out.append(ch.lower())
+        index.append(i)
+        previous_space = False
+    return "".join(out), index
+
+
 def _find_quote(text: str, quote: str | None) -> tuple[str | None, int | None, int | None, str]:
-    """Locate a quote in the resume. Returns (quote, start, end, support)."""
-    q = (quote or "").strip()
+    """Locate a quote in the resume. Returns (quote, start, end, support).
+
+    Invariant: whenever support is "verified", text[start:end] == quote exactly. A quote the
+    model paraphrased or elided is located on a whitespace-normalised copy, and the ORIGINAL
+    slice is returned so offsets and quotes can never disagree.
+    """
+    q = (quote or "").strip().strip('\u201c\u201d"')
     if not q or not text:
         return None, None, None, "flagged_unverified"
     idx = text.find(q)
     if idx >= 0:
         return text[idx: idx + len(q)], idx, idx + len(q), "verified"
-    norm_q = re.sub(r"\s+", " ", q).strip().lower()
-    flat = re.sub(r"\s+", " ", text.lower())
+    flat, index = _normalized_with_map(text)
+    norm_q = re.sub(r"\s+", " ", q).lower().strip()
     pos = flat.find(norm_q)
-    if pos >= 0:
-        real = 0
-        for target in range(pos):
-            while real < len(text) and not text[real].strip():
-                real += 1
-            real += 1
-        cand = text[real: real + len(q) + 20]
-        if cand.strip():
-            snip = cand.strip()[: max(len(q), 20)]
-            return snip, real, real + len(snip), "verified"
+    if pos >= 0 and norm_q:
+        start = index[pos]
+        end = index[pos + len(norm_q) - 1] + 1
+        return text[start:end], start, end, "verified"
+    # Last resort: the model elided text with an ellipsis - anchor on the longest segment.
+    for part in sorted((p.strip() for p in re.split(r"\.\.\.|\u2026", q) if p.strip()),
+                       key=len, reverse=True)[:1]:
+        flat_part = re.sub(r"\s+", " ", part).lower()
+        pos = flat.find(flat_part)
+        if pos >= 0 and len(flat_part) >= 12:
+            start = index[pos]
+            end = index[pos + len(flat_part) - 1] + 1
+            return text[start:end], start, end, "verified"
     return q, None, None, "flagged_unverified"
 
 
@@ -135,28 +161,28 @@ def extract(raw_text: str) -> tuple[dict, str]:
         label = (s.get("label") or "").strip()
         if not label:
             continue
-        q, a, b, sup = _find_quote(masked, s.get("quote"))
+        q, a, b, sup = _find_quote(raw_text, s.get("quote"))
         out["skills"].append({"label": label, "canonical": skills.canonical(label),
                               "quote": q, "start": a, "end": b, "support": sup})
     for e in data.get("experience") or []:
-        q, a, b, sup = _find_quote(masked, e.get("quote"))
+        q, a, b, sup = _find_quote(raw_text, e.get("quote"))
         out["experience"].append({
             "company": e.get("company") or "", "title": e.get("title") or "",
             "start": e.get("start"), "end": e.get("end"),
             "months": e.get("months") if isinstance(e.get("months"), int) else None,
             "summary": e.get("summary") or "", "quote": q, "start": a, "end": b, "support": sup})
     for ed in data.get("education") or []:
-        q, a, b, sup = _find_quote(masked, ed.get("quote"))
+        q, a, b, sup = _find_quote(raw_text, ed.get("quote"))
         out["education"].append({"institution": ed.get("institution") or "",
                                  "degree": ed.get("degree") or "", "field": ed.get("field"),
                                  "quote": q, "start": a, "end": b, "support": sup})
     for p in data.get("projects") or []:
-        q, a, b, sup = _find_quote(masked, p.get("quote"))
+        q, a, b, sup = _find_quote(raw_text, p.get("quote"))
         out["projects"].append({"name": p.get("name") or "", "description": p.get("description") or "",
                                 "tech": p.get("tech") or [], "quote": q,
                                 "start": a, "end": b, "support": sup})
     for c in data.get("certifications") or []:
-        q, a, b, sup = _find_quote(masked, c.get("quote"))
+        q, a, b, sup = _find_quote(raw_text, c.get("quote"))
         out["certifications"].append({"name": c.get("name") or "", "quote": q, "support": sup})
     # Contact details are needed on the profile, but they must never influence scoring,
     # so they are recovered from the RAW text (masked text has them removed).

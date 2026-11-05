@@ -1,5 +1,7 @@
-"""Real PDF parsing with PyMuPDF, plus section-aware chunking that keeps offsets."""
+"""Real document parsing (PDF via PyMuPDF, DOCX via the OOXML zip) with offset-keeping chunks."""
+import html
 import re
+import zipfile
 from pathlib import Path
 
 MAX_CHUNK = 900
@@ -36,6 +38,43 @@ def extract_text(path: Path) -> tuple[str, int]:
     text = "\n".join(pages)
     text = text.replace("\r\n", "\n").replace("\xa0", " ")
     return text, page_count
+
+
+def extract_docx(path: Path) -> tuple[str, int]:
+    """Return (raw_text, page_count) for a .docx by reading word/document.xml directly.
+
+    No extra dependency: a .docx is a zip of XML, paragraphs are <w:p>, line breaks <w:br/>.
+    """
+    try:
+        with zipfile.ZipFile(path) as archive:
+            xml = archive.read("word/document.xml").decode("utf-8", "ignore")
+    except (KeyError, zipfile.BadZipFile, OSError) as exc:
+        raise ParseFailure(f"Could not open DOCX ({type(exc).__name__})") from exc
+    nl = chr(10)
+    xml = xml.replace("</w:p>", nl)
+    xml = re.sub(r"<w:br[^>]*/>", nl, xml)
+    xml = re.sub(r"<w:tab[^>]*/>", "  ", xml)
+    text = html.unescape(re.sub(r"<[^>]+>", "", xml))
+    text = text.replace(chr(13) + nl, nl).replace(chr(160), " ").replace(chr(0x200B), "")
+    lines = [line.rstrip(" \t") for line in text.split(nl)]
+    while "" in lines[1:] and any(a == "" and b == "" for a, b in zip(lines, lines[1:])):
+        lines = [lines[i] for i in range(len(lines)) if not (lines[i] == "" and i and lines[i - 1] == "")]
+    text = nl.join(lines).strip()
+    if not text:
+        raise ParseFailure("No text found in the DOCX (it may be images only).")
+    return text, max(1, len(text) // 3000 + 1)
+
+
+def extract_any(path: Path) -> tuple[str, int]:
+    """Dispatch on the file extension. Raises ParseFailure for unsupported types."""
+    suffix = path.suffix.lower()
+    if suffix == ".pdf":
+        return extract_text(path)
+    if suffix == ".docx":
+        return extract_docx(path)
+    if suffix == ".doc":
+        raise ParseFailure("Legacy .doc is not supported - save it as .docx or PDF.")
+    raise ParseFailure("Unsupported file type '" + suffix + "'. Upload a PDF or DOCX.")
 
 
 def classify(text: str) -> tuple[str, str | None]:
@@ -96,4 +135,5 @@ def chunks(text: str) -> list[dict]:
 
 def _mk(section: str, text: str, start: int, end: int) -> dict:
     end = min(end, len(text))
-    return {"section": section, "text": text[start:end].strip(), "char_start": start, "char_end": end}
+    # Keep the exact slice so char_start/char_end always round-trip to this text.
+    return {"section": section, "text": text[start:end], "char_start": start, "char_end": end}

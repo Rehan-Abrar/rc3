@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ChevronDown, Columns3, Filter, ShieldAlert, SlidersHorizontal, Star } from 'lucide-react'
-import { applications, auditApi, jobs as jobsApi } from '../../lib/api'
+import { applications, auditApi, jobs as jobsApi, resumeFileUrl } from '../../lib/api'
 import type { ApplicantRow, DuplicatePair } from '../../lib/types'
 import { useAsync } from '../../lib/useAsync'
 import { Badge, Button, Card, CardHeader, Dialog, EmptyState, ErrorState, Field, Input, Select, Skeleton } from '../../components/ui/core'
@@ -317,7 +317,21 @@ export function ApplicantsPage() {
                       {thin && <Badge tone="warn"><ShieldAlert className="h-3 w-3" /> Thin evidence</Badge>}
                     </div>
                     <p className="mt-0.5 text-micro text-faint">
-                      {r.candidate.email} · {r.resume_filename || 'resume on file'} · {r.has_notes ? 'private note' : 'no notes'}
+                      {r.candidate.email} ·{' '}
+                      {r.resume_id ? (
+                        <a
+                          href={resumeFileUrl(r.resume_id)}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-accent hover:underline"
+                        >
+                          {r.resume_filename || 'view resume'}
+                        </a>
+                      ) : (
+                        r.resume_filename || 'resume on file'
+                      )}{' '}
+                      · {r.has_notes ? 'private note' : 'no notes'}
                     </p>
 
                     <div className="mt-2 flex flex-wrap gap-1.5">

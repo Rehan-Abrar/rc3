@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Check, FileText, Plus, RefreshCw, ShieldCheck, Upload, X } from 'lucide-react'
-import { resumeApi } from '../../lib/api'
+import { resumeApi, resumeFileUrl } from '../../lib/api'
 import type { Resume } from '../../lib/types'
 import { useAsync } from '../../lib/useAsync'
 import { Badge, Button, Card, CardHeader, EmptyState, ErrorState, Field, Input, Skeleton } from '../../components/ui/core'
@@ -68,12 +68,12 @@ export function ResumePage() {
     <div>
       <PageHeader
         title="My resume"
-        description="The parser extracts quotes from your PDF. You can correct the extracted skills — corrections are stored and used in future assessments."
+        description="The parser extracts quotes from your PDF or DOCX. You can correct the extracted skills — corrections are stored and used in future assessments."
       />
 
       <div className="grid gap-4 xl:grid-cols-[1fr_1.1fr]">
         <Card>
-          <CardHeader title="Upload" subtitle="PDF only · text-based, not a scan" />
+          <CardHeader title="Upload" subtitle="PDF or DOCX · text-based, not a scan" />
           <div className="p-4">
             <div
               onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
@@ -86,14 +86,14 @@ export function ResumePage() {
               <span className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-elevated text-faint">
                 <Upload className="h-4 w-4" />
               </span>
-              <p className="text-xs text-ink">Drag a PDF here, or</p>
+              <p className="text-xs text-ink">Drag a PDF or DOCX here, or</p>
               <Button size="sm" variant="primary" loading={uploading} onClick={() => inputRef.current?.click()}>
                 Choose file
               </Button>
               <input
                 ref={inputRef}
                 type="file"
-                accept="application/pdf,.pdf"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 className="sr-only"
                 onChange={(e) => onFiles(e.target.files)}
               />
@@ -106,13 +106,13 @@ export function ResumePage() {
 
             {resume && (
               <div className="mt-3 rounded-lg border border-line bg-canvas/50 p-3">
-                <p className="flex items-center gap-2 text-sm text-ink"><FileText className="h-4 w-4 text-faint" /> {resume.filename}</p>
+                <p className="flex items-center gap-2 text-sm text-ink"><FileText className="h-4 w-4 text-faint" /> {resume.filename}<a href={resumeFileUrl(resume.id)} target="_blank" rel="noreferrer" className="ml-auto text-micro font-medium text-accent hover:underline">View file</a></p>
                 <p className="mt-0.5 text-micro text-faint">
                   {resume.page_count} page(s) · {bytes(resume.size_bytes)} · uploaded {formatDate(resume.created_at, true)}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <Badge tone={resume.parse_status === 'ok' ? 'good' : 'warn'}>parse: {resume.parse_status}</Badge>
-                  <Badge tone="neutral">PDF</Badge>
+                  <Badge tone="neutral">{resume.filename.toLowerCase().endsWith(".docx") ? "DOCX" : "PDF"}</Badge>
                 </div>
                 {resume.parse_status !== 'ok' && (
                   <p className="mt-2 text-micro text-warn">

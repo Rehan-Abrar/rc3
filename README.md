@@ -12,7 +12,7 @@ Lahore (05/Nov/2026) - see `PROBLEM_STATEMENT.md` and `COMPETITION_RULES.md`.
 |---|---|
 | Auth | Recruiter/candidate registration, login, logout. bcrypt hashes, JWT sessions, role + ownership authorization |
 | Jobs | Create/edit/close/reopen, required/preferred skills with importance, AI extraction of requirements from a free-text description |
-| Resumes | Real PDF parsing (PyMuPDF) -> structured profile via LLM with **quote -> character-offset verification**; candidate corrections; graceful failure for scanned/empty files |
+| Resumes | Real **PDF (PyMuPDF) and DOCX (OOXML)** parsing -> structured profile via LLM with **quote -> character-offset verification**; the original file can be opened from the UI; candidate corrections; graceful failure for scanned/empty files |
 | Matching | Dense embeddings + cosine recall, then LLM evidence adjudication, then **deterministic weighted scoring** (skills 50 / experience 25 / projects 15 / qualifications 10) |
 | Explainability | Every matched requirement carries a resume excerpt; missing evidence is distinguished from confirmed absence; confidence band instead of false precision |
 | Pipeline | Submitted -> Parsed -> Assessed -> Recruiter review -> Shortlisted/Rejected -> Interview -> Selected, with audit trail, private notes and manual score override |
@@ -68,17 +68,26 @@ Seed credentials:
 | Candidate (strong) | `candidate@hire.dev` | `demo1234` |
 | Candidate (partial) | `bilal@rc3.dev` | `CandidatePass123` |
 | Candidate (adjacent) | `sana@rc3.dev` | `CandidatePass123` |
+| Candidate - real PDF CV | `rehan@rc3.dev` | `demo1234` |
+| Candidate - real DOCX CV | `ubaid@rc3.dev` | `demo1234` |
+| Candidate - real PDF CV | `mustafa@rc3.dev` | `demo1234` |
 
 The first two match the login page's demo buttons, so one click signs you in.
+
+Two seeded jobs: **Backend Developer** (synthetic backend candidates) and
+**Product Engineer (React + TypeScript)** (the three real CVs from `CVs/`, one of them DOCX).
+Log in as any candidate to see the same application the recruiter sees, and use
+**View file** to open the original PDF/DOCX.
 
 ## Tests
 
 ```bash
-cd backend && python -m pytest tests/ -q     # 12 passed
+cd backend && python -m pytest tests/ -q     # 22 passed
+cd backend && python demo_preflight.py       # 36 checks against the running API
 ```
 
-Covers auth + role/ownership guards, job CRUD/validation, upload rejection, quote-offset
-integrity, tri-state evidence, scoring arithmetic and determinism, fairness invariance,
+Covers auth + role/ownership guards, job CRUD/validation, upload rejection, real PDF and DOCX
+parsing with quote-offset integrity, tri-state evidence, scoring arithmetic and determinism, fairness invariance,
 dense-embedding paraphrase separation, and interview conflict 409.
 
 ## Demo (2 minutes)
@@ -93,6 +102,5 @@ dense-embedding paraphrase separation, and interview conflict 409.
 
 ## Known limits
 
-- DOCX upload is not enabled (optional in the spec); PDF only.
 - Notifications and email are simulated, as the spec permits.
 - Runs locally (SQLite + uvicorn); no cloud deployment.

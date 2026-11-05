@@ -59,6 +59,7 @@ class Resume(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     candidate_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     filename: Mapped[str] = mapped_column(String(255))
+    stored_path: Mapped[str | None] = mapped_column(String(255), nullable=True)  # file on disk under data/resumes/
     mime: Mapped[str] = mapped_column(String(120), default="application/pdf")
     size_bytes: Mapped[int] = mapped_column(Integer, default=0)
     page_count: Mapped[int] = mapped_column(Integer, default=0)

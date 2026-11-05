@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -37,12 +37,15 @@ def create_token(user: User) -> str:
 
 def current_user(
     creds: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    token: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> User:
-    if creds is None or not creds.credentials:
+    """Bearer header, or a ?token= query parameter for plain browser links (file views)."""
+    raw = creds.credentials if creds and creds.credentials else (token or "")
+    if not raw:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
     try:
-        payload = jwt.decode(creds.credentials, JWT_SECRET, algorithms=[JWT_ALG])
+        payload = jwt.decode(raw, JWT_SECRET, algorithms=[JWT_ALG])
     except jwt.ExpiredSignatureError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session expired, log in again")
     except jwt.PyJWTError:
