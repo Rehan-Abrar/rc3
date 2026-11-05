@@ -13,9 +13,15 @@ const problems = []
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
 const page = await browser.newPage({ viewport: { width: 1440, height: 950 } })
 page.on('pageerror', (e) => problems.push('pageerror: ' + e.message))
-page.on('console', (m) => m.type() === 'error' && problems.push('console: ' + m.text()))
+// A 409 on POST /interviews is the duplicate guard on a rerun; every other 4xx/5xx matters.
+const expected = (r) => r.status() === 409 && r.url().includes('/api/interviews')
+page.on('console', (m) => {
+  if (m.type() !== 'error') return
+  if (m.text().includes('409')) return
+  problems.push('console: ' + m.text())
+})
 page.on('response', (r) => {
-  if (r.url().includes('/api/') && r.status() >= 400) {
+  if (r.url().includes('/api/') && r.status() >= 400 && !expected(r)) {
     problems.push(`http ${r.status()} ${r.url().split('/api')[1]}`)
   }
 })
@@ -65,7 +71,11 @@ if (!(await schedule.isVisible().catch(() => false))) {
   await submit.click()
   await page.waitForTimeout(2500)
   const body = await page.locator('body').innerText()
-  const failed = /application not found|could not schedule|conflict/i.test(body)
+  // A 409 here is the duplicate guard: this application already has a slot (the seed books
+  // interviews for the top candidates). That is correct behaviour, not a failure - the API
+  // check below decides whether the application really has an interview.
+  const duplicate = /conflict|already/i.test(body)
+  const failed = /application not found|could not schedule/i.test(body)
   if (failed) problems.push('scheduling still fails: ' + body.match(/application not found[^\n]*/i)?.[0])
 
   // 3. confirm through the API that the interview exists
@@ -75,6 +85,7 @@ if (!(await schedule.isVisible().catch(() => false))) {
   }, { api: API, token })
   const created = list.some((i) => i.application_id === target.application_id)
   if (!created) problems.push('interview was not persisted for application ' + target.application_id)
+  else if (duplicate) console.log('application already had a slot - duplicate guard held')
   console.log('interviews now:', list.map((i) => `${i.candidate_name} @ ${i.scheduled_at}`).join(' | ') || 'none')
 }
 

@@ -180,7 +180,8 @@ export function ApplicantsPage() {
                   {duplicates.data!.length} possible duplicate {duplicates.data!.length === 1 ? 'record' : 'records'} detected
                 </p>
                 <p className="mt-0.5 text-micro text-muted">
-                  {duplicates.data!.map((d) => `${d.keep.name} ↔ ${d.duplicate.name} · ${d.reason}`).join(' · ')}
+                  {duplicates.data!.slice(0, 3).map((d) => `${d.keep.name} ↔ ${d.duplicate.name} · ${d.reason}`).join(' · ')}
+                  {duplicates.data!.length > 3 && ` · and ${duplicates.data!.length - 3} more`}
                 </p>
               </div>
             </div>
