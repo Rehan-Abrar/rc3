@@ -35,6 +35,14 @@ def _owned_app(db: Session, app_id: int, recruiter: m.User) -> m.Application:
     return a
 
 
+def _owned_interview(db: Session, interview_id: int, recruiter: m.User) -> m.Interview:
+    i = db.get(m.Interview, interview_id)
+    if not i:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Interview not found")
+    _owned_app(db, i.application_id, recruiter)
+    return i
+
+
 def _payload(db: Session, i: m.Interview) -> dict:
     a = db.get(m.Application, i.application_id)
     cand = db.get(m.User, a.candidate_id) if a else None
@@ -101,10 +109,7 @@ def list_interviews(job_id: int | None = None, db: Session = Depends(get_db),
 @router.post("/interviews/{interview_id}/feedback", status_code=201)
 def add_feedback(interview_id: int, body: schemas.FeedbackIn, db: Session = Depends(get_db),
                  recruiter: m.User = Depends(require_recruiter)):
-    i = db.get(m.Interview, interview_id)
-    if not i:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Interview not found")
-    _owned_app(db, i.application_id, recruiter)
+    i = _owned_interview(db, interview_id, recruiter)
     f = m.Feedback(interview_id=i.id, interviewer_id=recruiter.id, rating=body.rating,
                    strengths=body.strengths, concerns=body.concerns,
                    recommendation=body.recommendation)
@@ -118,6 +123,7 @@ def add_feedback(interview_id: int, body: schemas.FeedbackIn, db: Session = Depe
 @router.get("/interviews/{interview_id}/feedback")
 def list_feedback(interview_id: int, db: Session = Depends(get_db),
                   recruiter: m.User = Depends(require_recruiter)):
+    _owned_interview(db, interview_id, recruiter)
     rows = db.scalars(select(m.Feedback).where(m.Feedback.interview_id == interview_id)).all()
     out = []
     for f in rows:

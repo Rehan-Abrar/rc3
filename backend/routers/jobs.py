@@ -45,6 +45,14 @@ def _get_job(db: Session, job_id: int) -> m.Job:
     return job
 
 
+def _owned_job(db: Session, job_id: int, recruiter: m.User) -> m.Job:
+    """A job may only be modified by the recruiter who created it."""
+    job = _get_job(db, job_id)
+    if job.recruiter_id != recruiter.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your vacancy")
+    return job
+
+
 def _apply_requirements(db: Session, job: m.Job, reqs: list[schemas.RequirementIn]) -> None:
     for old in list(job.requirements):
         db.delete(old)
@@ -94,7 +102,7 @@ def get_job(job_id: int, db: Session = Depends(get_db), user: m.User = Depends(c
 @router.patch("/{job_id}")
 def update_job(job_id: int, body: schemas.JobPatch, db: Session = Depends(get_db),
                recruiter: m.User = Depends(require_recruiter)):
-    job = _get_job(db, job_id)
+    job = _owned_job(db, job_id, recruiter)
     data = body.model_dump(exclude_unset=True)
     reqs = data.pop("requirements", None)
     for key, value in data.items():
@@ -109,7 +117,7 @@ def update_job(job_id: int, body: schemas.JobPatch, db: Session = Depends(get_db
 @router.post("/{job_id}/close")
 def close_job(job_id: int, db: Session = Depends(get_db),
               recruiter: m.User = Depends(require_recruiter)):
-    job = _get_job(db, job_id)
+    job = _owned_job(db, job_id, recruiter)
     job.status = "closed"
     db.commit()
     return S.job_detail(db, job)
@@ -118,7 +126,7 @@ def close_job(job_id: int, db: Session = Depends(get_db),
 @router.post("/{job_id}/reopen")
 def reopen_job(job_id: int, db: Session = Depends(get_db),
                recruiter: m.User = Depends(require_recruiter)):
-    job = _get_job(db, job_id)
+    job = _owned_job(db, job_id, recruiter)
     job.status = "open"
     db.commit()
     return S.job_detail(db, job)
@@ -153,6 +161,7 @@ def extract_requirements(body: schemas.ExtractRequirementsIn,
 def talent_pool(job_id: int, db: Session = Depends(get_db),
                 recruiter: m.User = Depends(require_recruiter)):
     """Previously reviewed candidates not yet applied to this job (R31)."""
+    _owned_job(db, job_id, recruiter)
     applied = {a.candidate_id for a in db.scalars(
         select(m.Application).where(m.Application.job_id == job_id)).all()}
     rows = db.execute(
