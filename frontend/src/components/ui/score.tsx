@@ -178,7 +178,9 @@ export function SkillMatrix({ skills, showEvidence = true }: { skills: SkillRow[
                   {s.importance === 'preferred' && <span className="text-micro text-faint">preferred</span>}
                   {s.support === 'flagged_unverified' && <AlertTriangle className="h-3 w-3 text-bad" aria-label="Unverified evidence" />}
                 </span>
-                {s.reason && !expanded && <span className="mt-0.5 block truncate text-micro text-faint">{s.reason}</span>}
+                {!expanded && (s.evidence
+                  ? <span className="mt-0.5 block truncate text-micro text-muted">“{s.evidence.quote}”</span>
+                  : s.reason && <span className="mt-0.5 block truncate text-micro text-faint">{s.reason}</span>)}
               </span>
               <span className="flex shrink-0 items-center gap-2">
                 <Badge tone={meta.tone} className="hidden sm:inline-flex">
@@ -203,7 +205,7 @@ export function SkillMatrix({ skills, showEvidence = true }: { skills: SkillRow[
 export function AssessmentSummary({ assessment }: { assessment: Assessment }) {
   return (
     <div className="space-y-3 px-4 py-3">
-      <p className="text-xs leading-relaxed text-muted">{assessment.summary ?? assessment.explanation}</p>
+      <p className="text-xs leading-relaxed text-ink/85">{assessment.summary ?? assessment.explanation}</p>
       <ModeBadges score={assessment} />
     </div>
   )
