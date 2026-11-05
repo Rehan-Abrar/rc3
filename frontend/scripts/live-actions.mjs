@@ -50,10 +50,16 @@ try {
   await page.goto(`${BASE}/recruiter/applications/${appId}`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(800)
 
-  // stage change -> shortlist (requires a reason in the dialog)
+  // stage change -> shortlist (requires a reason in the dialog).
+  // Applications only move forward, so a re-run may find every applicant already shortlisted.
   console.log('step: shortlist')
-  await page.getByRole('button', { name: 'Shortlist' }).click()
-  await page.waitForTimeout(300)
+  const shortlistButton = page.getByRole('button', { name: 'Shortlist' })
+  if ((await shortlistButton.count()) === 0) {
+    console.log('step: shortlist SKIPPED (no application left in a shortlistable stage)')
+  } else {
+    await shortlistButton.click()
+    await page.waitForTimeout(300)
+  }
   console.log('step: shortlist reason')
   const reason = page.getByLabel(/reason/i)
   if (await reason.count()) {

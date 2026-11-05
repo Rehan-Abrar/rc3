@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, BriefcaseBusiness, CalendarClock, CheckCircle2, ClipboardList, TrendingUp, Users } from 'lucide-react'
+import { BriefcaseBusiness } from 'lucide-react'
 import { analyticsApi, applications, jobs } from '../../lib/api'
 import { useAsync } from '../../lib/useAsync'
 import { Badge, Button, Card, CardHeader, EmptyState, ErrorState, Skeleton, StatCard } from '../../components/ui/core'
@@ -10,10 +10,12 @@ import { ScoreNumber } from '../../components/ui/score'
 export function RecruiterDashboardPage() {
   const stats = useAsync(() => analyticsApi.overview())
   const jobList = useAsync(() => jobs.list({ status: 'open' }))
-  const applicants = useAsync(() => applications.forJob(1))
+  const primaryJobId = jobList.data?.[0]?.id
+  const applicants = useAsync(() => (primaryJobId ? applications.forJob(primaryJobId) : Promise.resolve([])), [primaryJobId])
 
   const s = stats.data
   const top = (applicants.data ?? []).slice(0, 4)
+  const funnel = buildFunnel(s)
 
   return (
     <div className="space-y-4">
@@ -21,18 +23,11 @@ export function RecruiterDashboardPage() {
         title="Overview"
         description="Live picture of your pipeline. Scores are evidence-weighted and always explainable."
         actions={
-          <>
-            <Link to="/recruiter/analytics">
-              <Button size="sm" variant="ghost">
-                <TrendingUp className="h-3.5 w-3.5" /> Analytics
-              </Button>
-            </Link>
-            <Link to="/recruiter/jobs/new">
-              <Button size="sm" variant="primary">
-                <BriefcaseBusiness className="h-3.5 w-3.5" /> Post a job
-              </Button>
-            </Link>
-          </>
+          <Link to="/recruiter/jobs/new">
+            <Button size="sm" variant="primary">
+              <BriefcaseBusiness className="h-3.5 w-3.5" /> Post a job
+            </Button>
+          </Link>
         }
       />
 
@@ -58,7 +53,7 @@ export function RecruiterDashboardPage() {
         <Card>
           <CardHeader
             title="Ranked applicants"
-            subtitle="Highest evidence-weighted relevance first"
+            subtitle={jobList.data?.[0] ? `Highest evidence for ${jobList.data[0].title}` : 'Highest evidence-weighted relevance first'}
             actions={
               <Link to="/recruiter/jobs/1/applicants" className="text-xs text-accent hover:underline">
                 View all
@@ -140,7 +135,7 @@ export function RecruiterDashboardPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-ink">{j.title}</p>
-                          <p className="truncate text-micro text-faint">
+                          <p className="break-words text-micro text-faint">
                             {j.department} · {j.location} · {formatSalary(j.salary_min, j.salary_max)}
                           </p>
                         </div>
@@ -153,48 +148,106 @@ export function RecruiterDashboardPage() {
             )}
           </Card>
 
-          <Card>
-            <CardHeader title="Common skill gaps" subtitle="Across this job's applicants" />
-            {stats.loading ? (
-              <div className="space-y-2 p-3">
-                {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8" />)}
-              </div>
-            ) : (
-              <ul className="divide-y divide-line">
-                {(s?.common_gaps ?? []).map((g) => {
-                  const max = Math.max(1, ...(s?.common_gaps ?? []).map((x) => x.count))
-                  return (
-                    <li key={g.skill} className="px-4 py-2.5">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="truncate body-copy text-xs text-ink">{g.skill}</p>
-                        <span className="shrink-0 font-mono text-[10px] text-muted tnum">{String(g.count).padStart(2, '0')}</span>
-                      </div>
-                      <div className="mt-1.5 h-1 w-full overflow-hidden bg-elevated">
-                        <div className="h-full bg-accent/70" style={{ width: `${(g.count / max) * 100}%` }} />
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </Card>
         </div>
       </div>
 
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[1.35fr_1fr]">
       <Card>
-        <CardHeader title="Recent activity" subtitle="Every stage change is recorded with an actor and a reason." />
-        <ul className="divide-y divide-line">
-          {(s?.by_job ?? []).map((j) => (
-            <li key={j.job_id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
-              <span className="text-xs text-ink">{j.title}</span>
-              <span className="text-micro text-muted tnum">
-                {j.applications} applications · {j.shortlisted} shortlisted · updated {formatDate(new Date().toISOString())}
+        <CardHeader
+          title="Pipeline funnel"
+          subtitle="Current position of every application, cumulative from the top"
+          actions={
+            s ? (
+              <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-faint tnum">
+                {s.applications} in pipeline
               </span>
-            </li>
-          ))}
-          {(s?.by_job ?? []).length === 0 && <li className="px-4 py-3 text-xs text-faint">No activity yet.</li>}
-        </ul>
+            ) : null
+          }
+        />
+        {stats.loading ? (
+          <div className="space-y-2 p-4">
+            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-9" />)}
+          </div>
+        ) : s && s.applications === 0 ? (
+          <EmptyState title="No applications yet" body="Funnel stages fill in as candidates apply and move through review." />
+        ) : (
+          <div className="px-4">
+            <ul className="space-y-2 py-3">
+              {funnel.rows.map((row, i) => (
+                <li key={row.label}>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="flex min-w-0 items-baseline gap-2">
+                      <span className="font-mono text-[9px] text-faint">0{i + 1}</span>
+                      <span className="truncate body-copy text-xs text-ink">{row.label}</span>
+                    </span>
+                    <span className="shrink-0 font-mono text-[10px] text-muted tnum">
+                      {row.count}<span className="text-faint"> · {row.pct}%</span>
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full overflow-hidden bg-elevated" role="presentation">
+                    <div className="h-full bg-accent" style={{ width: `${row.width}%` }} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className="border-t border-line py-2.5 text-[10px] leading-relaxed text-faint">
+              Cumulative — an application at interview is also counted as screened and shortlisted.
+              {funnel.rejected > 0 && ` ${funnel.rejected} rejected, excluded from the funnel.`}
+            </p>
+          </div>
+        )}
       </Card>
+
+        <Card>
+          <CardHeader title="Common skill gaps" subtitle="Across this job's applicants" />
+          {stats.loading ? (
+            <div className="space-y-2 p-3">
+              {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8" />)}
+            </div>
+          ) : (
+            <ul className="divide-y divide-line">
+              {(s?.common_gaps ?? []).map((g) => {
+                const max = Math.max(1, ...(s?.common_gaps ?? []).map((x) => x.count))
+                return (
+                  <li key={g.skill} className="px-4 py-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="truncate body-copy text-xs text-ink">{g.skill}</p>
+                      <span className="shrink-0 font-mono text-[10px] text-muted tnum">{String(g.count).padStart(2, '0')}</span>
+                    </div>
+                    <div className="mt-1.5 h-1 w-full overflow-hidden bg-elevated">
+                      <div className="h-full bg-accent/70" style={{ width: `${(g.count / max) * 100}%` }} />
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </Card>
+      </div>
     </div>
   )
+}
+
+function buildFunnel(s: { applications: number; by_stage: { stage: string; count: number }[] } | null) {
+  const at = (stage: string) => s?.by_stage.find((x) => x.stage === stage)?.count ?? 0
+  const screened =
+    at('parsed') + at('assessed') + at('recruiter_review') + at('shortlisted') + at('interview') + at('selected')
+  const shortlisted = at('shortlisted') + at('interview') + at('selected')
+  const interviewed = at('interview') + at('selected')
+  const selected = at('selected')
+  const rows = [
+    { label: 'Applications', count: s?.applications ?? 0 },
+    { label: 'Screened / assessed', count: screened },
+    { label: 'Shortlisted', count: shortlisted },
+    { label: 'Interviewed', count: interviewed },
+    { label: 'Selected', count: selected },
+  ].map((row) => {
+    const top = Math.max(s?.applications ?? 0, 1)
+    return {
+      ...row,
+      pct: s?.applications ? Math.round((row.count / s.applications) * 100) : 0,
+      width: Math.round((row.count / top) * 100),
+    }
+  })
+  return { rows, rejected: at('rejected') }
 }
