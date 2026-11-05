@@ -40,12 +40,15 @@ export interface CompareRow {
   gaps: string[]
 }
 
-/** GET /candidates/jobs/recommended */
+/** GET /candidates/jobs/recommended (shape mirrors the API response) */
 export interface RecommendedJob {
-  job: JobSummary
-  reason: string
-  matched: string[]
+  job_id: number
+  title: string
+  department: string
+  similarity: number
   score: number
+  matched_skills: string[]
+  reason: string
 }
 
 /** UI-only view model: an application row plus its lazily loaded assessment. */
