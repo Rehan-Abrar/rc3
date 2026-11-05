@@ -1,237 +1,449 @@
+import { useLayoutEffect, type CSSProperties } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { ArrowRight, BadgeCheck, FileSearch, Gauge, ShieldCheck, Sparkles, Users } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { useAuth } from '../lib/auth'
+import { TalentNetwork } from '../components/landing/TalentNetwork'
+import { PipelineDemo } from '../components/landing/PipelineDemo'
+import { useReveal } from '../components/landing/useReveal'
+import '../components/landing/landing.css'
 
-const STEPS = [
-  {
-    code: '01',
-    title: 'Resumes are parsed, not skimmed',
-    body: 'PDF or DOCX goes through PyMuPDF and an LLM extractor. Every skill, role and qualification comes back with the sentence it was taken from.',
-    icon: FileSearch,
-  },
-  {
-    code: '02',
-    title: 'Scores are weighted and quoted',
-    body: 'Skills 50, experience 25, project relevance 15, qualifications 10. Each requirement shows matched, partial or missing evidence — never a guess.',
-    icon: Gauge,
-  },
-  {
-    code: '03',
-    title: 'A human decides',
-    body: 'Shortlist, reject, override, schedule, record feedback. Every action is written to an audit trail with the actor and the reason.',
-    icon: Users,
-  },
+const reveal = (index: number): CSSProperties => ({ '--i': index } as CSSProperties)
+
+const WEIGHTS = [
+  { label: 'Skills', weight: 50, points: '47.0', width: '94%' },
+  { label: 'Experience', weight: 25, points: '24.5', width: '98%' },
+  { label: 'Projects', weight: 15, points: '13.8', width: '92%' },
+  { label: 'Qualifications', weight: 10, points: '8.1', width: '81%' },
 ]
 
-const FACTS = [
-  ['Protected attributes dropped', 'Name, gender, age and nationality are stripped before scoring; the fairness audit re-runs the same resume with those fields swapped.'],
-  ['Missing evidence is not absence', 'A requirement with no supporting sentence is labelled missing evidence. Only explicit statements or a recruiter mark it confirmed absent.'],
-  ['AI mode is always visible', 'Every assessment shows whether extraction ran with the LLM, fell back to heuristics, or degraded — and which embedding path produced the similarity.'],
+const CANDIDATE_FACTS = [
+  [
+    'Real parsing, with the sentence attached',
+    'Skills come from your own document. Open any one of them and read the line it was taken from.',
+  ],
+  [
+    'Your corrections are kept',
+    'Anything the parser missed can be added by hand, and stays alongside the extracted evidence.',
+  ],
+  [
+    'You see the stage a recruiter set',
+    'The tracker shows the real stage and its history. The AI never rejects an application on its own.',
+  ],
+  [
+    'Roles matched to verified skills',
+    'Recommendations come from what the resume actually supports — not from a keyword count.',
+  ],
+]
+
+const MODES = [
+  ['Extraction', 'LLM · groq', 'Used for this resume, and stored with the assessment.'],
+  ['Similarity', 'Dense embeddings', 'Chosen per assessment and named on every requirement row.'],
+  ['Fallback', 'Heuristic', 'Labelled when the model degrades — never passed off as AI.'],
 ]
 
 export function LandingPage() {
   const { user, loading } = useAuth()
+  const rootRef = useReveal()
+
+  useLayoutEffect(() => {
+    rootRef.current?.classList.add('ready')
+  }, [rootRef])
+
   if (!loading && user) return <Navigate to={user.role === 'recruiter' ? '/recruiter' : '/candidate'} replace />
 
   return (
-    <div className="min-h-screen bg-surface">
-      <nav className="sticky top-0 z-40 border-b border-line border-t-[2.5px] border-t-accent bg-surface">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:px-8">
-          <Link to="/" className="shrink-0 font-display text-[17px] font-medium tracking-tight text-accent">
-            Hire Intelligence
-          </Link>
-          <div className="hidden flex-1 items-center gap-5 md:flex">
-            {[
-              ['How it works', '#how'],
-              ['For recruiters', '#recruiters'],
-              ['For candidates', '#candidates'],
-              ['AI & fairness', '#fairness'],
-            ].map(([label, href]) => (
-              <a key={href} href={href} className="body-copy text-[13px] text-ink/75 transition-colors hover:text-accent">
-                {label}
+    <div className="landing" ref={rootRef}>
+      <header className="land-hero">
+        <div className="land-wrap">
+          <nav className="land-nav" aria-label="Primary">
+            <Link to="/" className="land-wordmark">
+              Hire Intelligence
+            </Link>
+            <div className="land-nav__links">
+              <a href="#how" className="land-nav__link">
+                How it works
               </a>
-            ))}
-          </div>
-          <div className="ml-auto flex shrink-0 items-center gap-2">
-            <Link to="/login" className="border border-line px-3 py-2 body-copy text-xs font-medium text-ink transition-colors hover:border-accent/40 hover:text-accent">
-              Sign in
-            </Link>
-            <Link to="/register" className="bg-accent px-3 py-2 body-copy text-xs font-medium text-accent-ink transition-colors hover:bg-accent/88">
-              Create account
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      <section className="bg-accent px-4 py-14 text-accent-ink sm:px-8 sm:py-20">
-        <div className="mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row lg:items-start lg:gap-12">
-          <div className="lg:w-[58%]">
-            <span className="inline-block bg-ink px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-white/85">
-              [ AI-powered · human-controlled ]
-            </span>
-            <h1 className="mt-5 font-display text-[clamp(40px,7vw,76px)] font-light leading-[1.02] tracking-[-0.03em] text-white">
-              Hire for evidence,
-              <br />
-              not keywords.
-            </h1>
-            <div className="mt-7 flex flex-wrap gap-2">
-              <Link to="/login" className="inline-flex h-10 items-center gap-2 bg-white px-5 body-copy text-sm font-medium text-accent transition-colors hover:bg-white/90">
-                Open the recruiter console <ArrowRight className="h-4 w-4" aria-hidden />
+              <a href="#evidence" className="land-nav__link">
+                Evidence
+              </a>
+              <a href="#fairness" className="land-nav__link">
+                Fairness
+              </a>
+              <a href="#console" className="land-nav__link">
+                Console
+              </a>
+              <a href="#candidates" className="land-nav__link">
+                For candidates
+              </a>
+            </div>
+            <div className="land-nav__actions">
+              <Link to="/login" className="land-btn land-btn--ghost-light">
+                Sign in
               </Link>
-              <Link to="/register" className="inline-flex h-10 items-center gap-2 border border-white/40 px-5 body-copy text-sm font-medium text-white transition-colors hover:bg-white/10">
+              <Link to="/register" className="land-btn land-btn--light">
+                Create account
+              </Link>
+            </div>
+          </nav>
+        </div>
+
+        <div className="land-wrap land-hero__body">
+          <h1 className="land-hero__title">
+            <span className="line">
+              <span style={reveal(0)}>Hire for evidence,</span>
+            </span>
+            <span className="line">
+              <span style={reveal(1)}>not keywords.</span>
+            </span>
+          </h1>
+
+          <div className="land-hero__copy">
+            <p className="land-hero__lead land-hero__rise" style={reveal(0)}>
+              A recruitment console where every AI score decomposes into weighted criteria — and every
+              criterion points back to the sentence in the resume that supports it. Missing evidence is
+              shown as missing, never as failure.
+            </p>
+
+            <div className="land-hero__actions land-hero__rise" style={reveal(1)}>
+              <Link to="/login" className="land-btn land-btn--light">
+                Open the recruiter console
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+              <Link to="/register" className="land-btn land-btn--ghost-light">
                 Apply as a candidate
               </Link>
             </div>
-            <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.1em] text-white/60">
-              Seeded demo accounts · one click fills the form
-            </p>
-            <ul className="mt-8 space-y-2 border-t border-white/15 pt-5">
-              {[
-                'Every score decomposes into four weighted dimensions',
-                'Every requirement can be expanded to its resume sentence',
-                'Every stage change is recorded with actor and reason',
-              ].map((line) => (
-                <li key={line} className="flex items-start gap-2 body-copy text-[12px] leading-relaxed text-white/70">
-                  <span className="mt-1.5 h-1 w-1 shrink-0 bg-white/60" aria-hidden />
-                  {line}
-                </li>
-              ))}
-            </ul>
+
           </div>
 
-          <div className="lg:flex-1">
-            <p className="max-w-md body-copy text-[15px] leading-relaxed text-white/85">
-              A recruitment and talent-intelligence platform where every AI score is broken into weighted evidence and tied to a
-              sentence in the resume. Missing skills are shown as missing — never as failure.
-            </p>
-            <div className="mt-6 grid grid-cols-3 gap-px border border-white/20 bg-white/20 sm:grid-cols-6">
-              {['Parse', 'Assess', 'Rank', 'Shortlist', 'Interview', 'Decide'].map((step) => (
-                <span key={step} className="bg-white/10 px-1 py-1.5 text-center font-ui text-[9px] font-semibold uppercase tracking-[0.08em] text-white">
-                  {step}
-                </span>
-              ))}
-            </div>
-            <div className="mt-7 border border-white/25 bg-white p-4 text-ink">
-              <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">[ Example evidence row ]</p>
-              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
-                <p className="body-copy text-xs font-semibold">PostgreSQL · required</p>
-                <span className="inline-flex items-center gap-1 border border-good/25 bg-good/8 px-1.5 py-0.5 font-ui text-[10px] font-medium uppercase tracking-[0.06em] text-good">
-                  <BadgeCheck className="h-3 w-3" /> Matched · 94%
-                </span>
-              </div>
-              <p className="mt-2 border-l-2 border-accent bg-canvas py-2 pl-3 pr-2 body-copy text-[11px] leading-relaxed text-ink/85">
-                “Tuned 40+ PostgreSQL indexes and cut p95 query latency from 340ms to 90ms on the billing service.”
-              </p>
-              <p className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.08em] text-faint">
-                Verified against resume text · dense embeddings
-              </p>
-            </div>
+          <div className="land-hero__art land-hero__rise" style={reveal(2)}>
+            <TalentNetwork />
           </div>
+
+          <ul className="land-hero__facts land-hero__rise" style={reveal(3)}>
+            <li>Four weighted dimensions</li>
+            <li>Every score opens its quote</li>
+            <li>Humans make the call</li>
+          </ul>
+        </div>
+      </header>
+
+      <section id="how" className="land-section land-section--white">
+        <div className="land-wrap">
+          <div className="land-pipeline__head">
+            <h2 className="land-h2 reveal" data-reveal style={reveal(0)}>
+              The whole decision, on the record.
+            </h2>
+            <p className="land-lead reveal" data-reveal style={reveal(1)}>
+              Six stages, from raw PDF to a signed-off decision. Open any stage to see the evidence it
+              leaves behind.
+            </p>
+          </div>
+
+          <div className="reveal" data-reveal style={reveal(2)}>
+            <PipelineDemo />
+          </div>
+
+          <p className="reveal" data-reveal style={{ ...reveal(3), marginTop: 28 }}>
+            <Link to="/login" className="land-link" style={{ color: 'var(--l-accent)', fontSize: 16 }}>
+              Walk the pipeline with the seeded demo recruiter
+            </Link>
+          </p>
         </div>
       </section>
 
-      <section id="how" className="border-b border-line px-4 py-14 sm:px-8 sm:py-16">
-        <div className="mx-auto max-w-6xl">
-          <p className="bracket-blue">[ How it works ]</p>
-          <h2 className="display mt-2 max-w-2xl text-[clamp(26px,3.4vw,38px)] leading-[1.1]">
-            Three steps, all of them inspectable.
-          </h2>
-          <div className="mt-8 grid gap-0 border border-line md:grid-cols-3 md:divide-x md:divide-line">
-            {STEPS.map((s) => (
-              <div key={s.code} className="border-b border-line px-5 py-6 last:border-b-0 md:border-b-0">
-                <div className="flex items-center justify-between">
-                  <s.icon className="h-5 w-5 text-accent" aria-hidden />
-                  <span className="font-mono text-[10px] text-faint">{s.code}</span>
+      <section id="evidence" className="land-section land-section--paper">
+        <div className="land-wrap">
+          <div className="land-proof__head">
+            <h2 className="land-h2 reveal" data-reveal style={reveal(0)}>
+              Honest by construction.
+            </h2>
+            <p className="land-lead reveal" data-reveal style={reveal(1)}>
+              Every score shows its working — the criteria, the weights, and the parts it could not
+              measure.
+            </p>
+          </div>
+
+          <div className="land-proof__rows">
+            <div className="land-proof__row reveal" data-reveal>
+              <div>
+                <h3>Weighted, never guessed.</h3>
+                <p>
+                  Each dimension is scored on its own, then weighted into the final number. A strong skill
+                  match cannot quietly cover a thin experience record.
+                </p>
+              </div>
+              <div className="land-proof__visual">
+                <p className="land-bars__cap">Points earned out of each weight.</p>
+                <div className="land-bars">
+                  {WEIGHTS.map((row) => (
+                    <div key={row.label}>
+                      <span>
+                        {row.label} <span style={{ color: 'var(--l-faint)' }}>{row.weight}</span>
+                      </span>
+                      <i style={{ width: row.width }} />
+                      <em>
+                        {row.points}
+                        <span> / {row.weight}</span>
+                      </em>
+                    </div>
+                  ))}
                 </div>
-                <h3 className="mt-3 font-display text-[17px] font-medium leading-snug text-ink">{s.title}</h3>
-                <p className="mt-2 body-copy text-[13px] leading-relaxed text-muted">{s.body}</p>
               </div>
-            ))}
+            </div>
+
+            <div className="land-proof__row land-proof__row--flip reveal" data-reveal>
+              <div>
+                <h3>Missing evidence is not absence.</h3>
+                <p>
+                  A requirement with no supporting sentence is labelled missing evidence. The score drops,
+                  but the candidate is never called unqualified for something the parser could not find.
+                </p>
+              </div>
+              <div className="land-proof__visual">
+                <div className="land-missing" data-ui>
+                  <div className="land-missing__top">
+                    <strong>Kubernetes · required</strong>
+                    <span>Missing evidence</span>
+                  </div>
+                  <p>
+                    No supporting sentence was found in this resume. Add a manual confirmation, or ask
+                    about it in the interview.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="land-proof__row reveal" data-reveal>
+              <div>
+                <h3>Every AI mode is labelled.</h3>
+                <p>
+                  Each assessment records the path that produced it — LLM extraction or heuristic
+                  fallback, dense or lexical similarity. When a dimension could not be measured, it says
+                  so instead of showing a zero.
+                </p>
+              </div>
+              <div className="land-proof__visual">
+                <div className="land-audit">
+                  {MODES.map(([label, mode, note]) => (
+                    <div className="land-audit__row" key={label}>
+                      <span>{label}</span>
+                      <div>
+                        <b>{mode}</b>
+                        <div>
+                          <span>{note}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section id="recruiters" className="border-b border-line bg-canvas px-4 py-14 sm:px-8 sm:py-16">
-        <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1fr_1fr] lg:gap-12">
-          <div>
-            <p className="bracket-blue">[ For recruiters ]</p>
-            <h2 className="display mt-2 text-[clamp(24px,3vw,34px)] leading-[1.15]">Ranked applicants you can defend in a meeting.</h2>
-            <p className="mt-3 max-w-lg body-copy text-sm leading-relaxed text-muted">
-              Post a job, let extraction turn the description into a matching contract, then work the ranked list with quoted
-              evidence on every requirement. Overrides are recorded with your reason and change the ranking explicitly.
+      <section id="fairness" className="land-section land-fairness">
+        <div className="land-wrap">
+          <div className="land-fairness__head">
+            <h2 className="reveal" data-reveal style={reveal(0)}>
+              Same resume. Same score.
+            </h2>
+            <p className="reveal" data-reveal style={reveal(1)}>
+              Name, gender, age and nationality are stripped before scoring. The fairness audit re-runs
+              the same resume with them swapped, and keeps both results.
             </p>
-            <ul className="mt-5 space-y-2">
-              {[
-                'Job editor with AI requirement extraction',
-                'Applicants ranked by evidence, filterable by stage and score',
-                'Private notes, audit trail and human overrides',
-                'Interview scheduling with conflict detection',
-                'Fairness audit and duplicate candidate merge',
-              ].map((line) => (
-                <li key={line} className="flex gap-2 body-copy text-[13px] text-muted">
-                  <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
-                  {line}
+          </div>
+          <div className="land-fairness__scores">
+            <div className="land-fairness__col reveal" data-reveal style={reveal(0)}>
+              <b>93.4</b>
+              <p>Original resume · Ayesha Khan</p>
+            </div>
+            <div className="land-fairness__col reveal" data-reveal style={reveal(1)}>
+              <b>93.4</b>
+              <p>Protected fields swapped · Candidate A</p>
+            </div>
+          </div>
+          <div className="land-fairness__ledger reveal" data-reveal style={reveal(2)}>
+            <div>
+              <span>Baseline assessment</span>
+              <b>93.4</b>
+            </div>
+            <div>
+              <span>Protected fields swapped</span>
+              <b>93.4</b>
+            </div>
+            <div>
+              <span>Difference</span>
+              <b>0.0</b>
+            </div>
+          </div>
+          <p className="land-fairness__note reveal" data-reveal style={reveal(3)}>
+            Illustrative run. In the console the audit stores both assessments, so the comparison stays
+            inspectable instead of being a claim in a footer.
+          </p>
+        </div>
+      </section>
+
+      <section id="console" className="land-section land-section--ink">
+        <div className="land-wrap">
+          <div className="land-product__head">
+            <h2 className="land-h2 reveal" data-reveal style={reveal(0)}>
+              Inside the console.
+            </h2>
+            <p className="land-lead reveal" data-reveal style={reveal(1)}>
+              These are screenshots from the running application — the same screens the demo accounts
+              open.
+            </p>
+          </div>
+
+          <div className="land-product__mosaic">
+            <figure className="land-shot land-shot--drift reveal" data-reveal style={{ ...reveal(0), margin: 0 }}>
+              <img
+                src="/landing/console-ranked-list.png"
+                width={1440}
+                height={950}
+                loading="lazy"
+                decoding="async"
+                alt="The applicants screen: four candidates ranked with scores, skill tags and strong, partial or insufficient-evidence labels."
+              />
+              <figcaption className="land-shot__cap">
+                <b>Applicants, ranked by evidence</b>
+                <span>Strong, partial and insufficient-evidence states</span>
+              </figcaption>
+            </figure>
+
+            <div className="land-product__mosaic--2">
+              <figure
+                className="land-shot land-shot--crop reveal"
+                data-reveal
+                style={{ ...reveal(1), margin: 0 }}
+              >
+                <img
+                  src="/landing/console-evidence.png"
+                  width={1440}
+                  height={1688}
+                  loading="lazy"
+                  decoding="async"
+                  alt="An application detail screen showing each requirement with the quoted resume sentence and its weighted contribution."
+                />
+                <figcaption className="land-shot__cap">
+                  <b>Evidence per requirement</b>
+                  <span>Quote, weight, and similarity</span>
+                </figcaption>
+              </figure>
+
+              <figure
+                className="land-shot land-shot--crop reveal"
+                data-reveal
+                style={{ ...reveal(1), margin: '18px 0 0' }}
+              >
+                <img
+                  src="/landing/not-measured.png"
+                  width={1440}
+                  height={1100}
+                  loading="lazy"
+                  decoding="async"
+                  alt="An application detail screen marking dimensions that could not be measured instead of scoring them as zero."
+                />
+                <figcaption className="land-shot__cap">
+                  <b>Not measured, said plainly</b>
+                  <span>No silent zeros</span>
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="candidates" className="land-section land-section--white">
+        <div className="land-wrap land-cand">
+          <div>
+            <h2 className="land-h2 reveal" data-reveal style={reveal(0)}>
+              Your resume is the source of truth.
+            </h2>
+            <p className="land-lead reveal" data-reveal style={reveal(1)}>
+              Upload a PDF or DOCX, correct anything the parser missed, and apply with the document you
+              choose. You see the same evidence the recruiter sees.
+            </p>
+
+            <ul className="land-cand__list">
+              {CANDIDATE_FACTS.map(([title, body], index) => (
+                <li key={title} className="reveal" data-reveal style={reveal(index)}>
+                  <div>
+                    <b>{title}</b>
+                    <span>{body}</span>
+                  </div>
                 </li>
               ))}
             </ul>
-            <Link to="/login" className="mt-6 inline-flex h-10 items-center gap-2 bg-accent px-5 body-copy text-sm font-medium text-accent-ink transition-colors hover:bg-accent/88">
-              Sign in to the console <ArrowRight className="h-4 w-4" aria-hidden />
-            </Link>
+
+            <div className="reveal" data-reveal style={{ ...reveal(2), marginTop: 28 }}>
+              <Link to="/register" className="land-btn land-btn--blue">
+                Create a candidate account
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
           </div>
-          <div id="candidates" className="border border-line bg-surface p-6">
-            <p className="bracket-blue">[ For candidates ]</p>
-            <h2 className="display mt-2 text-[clamp(22px,2.6vw,28px)] leading-[1.15]">Your resume is the source of truth.</h2>
-            <p className="mt-3 body-copy text-sm leading-relaxed text-muted">
-              Upload a PDF or DOCX, correct anything the parser missed, and apply with the document you choose. You see the exact
-              stage a recruiter sets — AI never rejects you automatically.
-            </p>
-            <ul className="mt-5 space-y-2">
-              {[
-                'Real parsing with quoted skill evidence',
-                'Manual skill corrections kept alongside the extraction',
-                'Application tracker with stage history',
-                'Roles recommended from your verified skills',
-              ].map((line) => (
-                <li key={line} className="flex gap-2 body-copy text-[13px] text-muted">
-                  <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-good" aria-hidden />
-                  {line}
-                </li>
-              ))}
-            </ul>
-            <Link to="/register" className="mt-6 inline-flex h-10 items-center gap-2 border border-ink/15 px-5 body-copy text-sm font-medium text-ink transition-colors hover:border-accent/40 hover:text-accent">
-              Create a candidate account <ArrowRight className="h-4 w-4" aria-hidden />
-            </Link>
+
+          <div className="land-cand__visual reveal" data-reveal style={reveal(1)}>
+            <div className="land-cand__shot">
+              <img
+                src="/landing/candidate-resume.png"
+                width={1440}
+                height={950}
+                loading="lazy"
+                decoding="async"
+                alt="The candidate resume screen, showing the uploaded document and the skills parsed from it."
+              />
+            </div>
+            <div className="land-cand__float">
+              <p>
+                <b>Every parsed skill keeps its sentence.</b> Correct the extraction and the correction
+                sits beside the original, not on top of it.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      <section id="fairness" className="border-b border-line px-4 py-14 sm:px-8 sm:py-16">
-        <div className="mx-auto max-w-6xl">
-          <p className="bracket-blue">[ AI &amp; fairness ]</p>
-          <h2 className="display mt-2 max-w-2xl text-[clamp(24px,3vw,34px)] leading-[1.15]">Honest by construction, not by promise.</h2>
-          <div className="mt-8 grid gap-0 border border-line md:grid-cols-3 md:divide-x md:divide-line">
-            {FACTS.map(([title, body]) => (
-              <div key={title} className="border-b border-line px-5 py-6 last:border-b-0 md:border-b-0">
-                <h3 className="font-display text-[15px] font-medium leading-snug text-ink">{title}</h3>
-                <p className="mt-2 body-copy text-[13px] leading-relaxed text-muted">{body}</p>
-              </div>
-            ))}
+      <section className="land-section land-cta">
+        <div className="land-wrap land-cta__inner">
+          <h2 className="reveal" data-reveal style={reveal(0)}>
+            Bring a resume.
+            <br />
+            Read the evidence.
+          </h2>
+          <div className="land-cta__actions reveal" data-reveal style={reveal(1)}>
+            <Link to="/login" className="land-btn land-btn--light">
+              Open the recruiter console
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+            <Link to="/register" className="land-btn land-btn--outline-light">
+              Create an account
+            </Link>
           </div>
+          <p className="land-cta__note reveal" data-reveal style={reveal(2)}>
+            Seeded demo accounts — <b>recruiter@hire.dev</b> and <b>candidate@hire.dev</b>. The password
+            is <b>demo1234</b>, and one click fills the sign-in form.
+          </p>
         </div>
       </section>
 
-      <footer className="bg-ink px-4 py-12 text-white sm:px-8">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="font-display text-lg font-medium tracking-tight text-white">Hire Intelligence</p>
-            <p className="mt-1 max-w-sm body-copy text-[13px] leading-relaxed text-white/60">
-              Evidence-first recruitment and talent intelligence. Built for a hackathon, honest about its modes.
-            </p>
+      <footer className="land-footer">
+        <div className="land-wrap land-footer__inner">
+          <div className="land-footer__top">
+            <h2>Hire Intelligence</h2>
+            <div className="land-footer__links">
+              <Link to="/login">Sign in</Link>
+              <Link to="/register">Create account</Link>
+              <Link to="/candidate/jobs">Open roles</Link>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-6">
-            <Link to="/login" className="body-copy text-[13px] text-white/75 hover:text-white">Sign in</Link>
-            <Link to="/register" className="body-copy text-[13px] text-white/75 hover:text-white">Create account</Link>
-            <Link to="/candidate/jobs" className="body-copy text-[13px] text-white/75 hover:text-white">Open roles</Link>
+          <div className="land-footer__bottom">
+            <span>Evidence-first recruitment and talent intelligence.</span>
+            <span>Screenshots are captured from the running application.</span>
+            <span>R S C I Web Development Competition · 2026</span>
           </div>
         </div>
       </footer>
