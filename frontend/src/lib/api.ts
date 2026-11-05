@@ -765,19 +765,45 @@ export const auditApi = {
   async duplicates(): Promise<DuplicatePair[]> {
     if (!USE_FIXTURES) return request<DuplicatePair[]>('/talent/duplicates')
     await delay(320)
-    return [
-      {
-        keep: { id: 3, name: 'Daniel Osei', email: 'daniel.osei@example.com' },
-        duplicate: { id: 7, name: 'D. Osei', email: 'd.osei@example.com' },
-        reason: 'Same phone number and 78% resume text similarity',
-        similarity: 0.78,
-      },
-    ]
+    // Real detection: two candidates sending the same resume text to the same job.
+    const byText = new Map<string, { jobId: number; appIds: number[]; candidateIds: number[] }>()
+    for (const app of store.applications) {
+      const resume = store.resumes.find((r) => r.id === app.resume_id)
+      if (!resume) continue
+      const key = `${app.job_id}:${resume.raw_text.trim().toLowerCase()}`
+      const bucket = byText.get(key) ?? { jobId: app.job_id, appIds: [], candidateIds: [] }
+      bucket.appIds.push(app.id)
+      bucket.candidateIds.push(app.candidate_id)
+      byText.set(key, bucket)
+    }
+    const pairs: DuplicatePair[] = []
+    for (const bucket of byText.values()) {
+      const unique = [...new Set(bucket.candidateIds)]
+      if (unique.length < 2) continue
+      const [keepId, dupeId] = unique
+      const keep = store.users.find((u) => u.id === keepId)
+      const dupe = store.users.find((u) => u.id === dupeId)
+      if (!keep || !dupe) continue
+      pairs.push({
+        keep: { id: keep.id, name: keep.full_name ?? '', email: keep.email },
+        duplicate: { id: dupe.id, name: dupe.full_name ?? '', email: dupe.email },
+        reason: 'Identical resume text sent to the same job from two accounts',
+        similarity: 0.98,
+      })
+    }
+    return pairs
   },
 
   async merge(keepId: number, mergeId: number): Promise<{ ok: boolean }> {
     if (!USE_FIXTURES) return request<{ ok: boolean }>('/talent/merge', { method: 'POST', body: JSON.stringify({ keep_id: keepId, merge_id: mergeId }) })
     await delay(400)
+    // Keep the surviving candidate's applications; drop the duplicate's overlapping ones.
+    const keepJobs = new Set(store.applications.filter((a) => a.candidate_id === keepId).map((a) => a.job_id))
+    store.applications = store.applications.filter((a) => !(a.candidate_id === mergeId && keepJobs.has(a.job_id)))
+    const mergedResumes = new Set(store.applications.filter((a) => a.candidate_id === mergeId).map((a) => a.resume_id))
+    store.resumes = store.resumes.filter((r) => !(r.candidate_id === mergeId && !mergedResumes.has(r.id)))
+    store.users = store.users.filter((u) => u.id !== mergeId)
+    store.events = store.events.filter((e) => store.applications.some((a) => a.id === e.application_id))
     return { ok: true }
   },
 }

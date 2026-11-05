@@ -139,6 +139,8 @@ export const users: User[] = [
   { id: 3, email: 'daniel.osei@example.com', full_name: 'Daniel Osei', role: 'candidate', created_at: iso(19) },
   { id: 4, email: 'marco.silva@example.com', full_name: 'Marco Silva', role: 'candidate', created_at: iso(18) },
   { id: 5, email: 'tomas.berg@example.com', full_name: 'Tomas Berg', role: 'candidate', created_at: iso(17) },
+  // Deliberate duplicate record: same person re-applied through a second account.
+  { id: 7, email: 'd.osei@example.com', full_name: 'Daniel O.', role: 'candidate', created_at: iso(16) },
 ]
 
 export const jobRequirements: RequirementRow[] = [
