@@ -21,7 +21,7 @@ page.on('response', (r) => {
 const shot = async (name) => page.screenshot({ path: `${OUT}/${name}.png`, fullPage: true })
 const text = () => page.evaluate(() => document.body.innerText)
 
-await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' })
 await shot('01-login')
 
 // Sign in with the seeded demo recruiter (quick-login chips are fixtures-only).
