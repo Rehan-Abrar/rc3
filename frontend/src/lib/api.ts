@@ -103,6 +103,22 @@ const fail = (status: number, detail: string): never => {
 /** Demo credentials are fixed so the judge can log in without a seed run. */
 export const DEMO_PASSWORD = 'demo1234'
 
+/**
+ * Seeded backend accounts (backend/seed.py). Fixture mode maps them onto the same
+ * fixture users and accepts their passwords, so the demo cards work either way.
+ */
+export const DEMO_ACCOUNTS = {
+  recruiter: { email: 'recruiter@hire.dev', password: 'demo1234' },
+  candidate: { email: 'candidate@hire.dev', password: 'demo1234' },
+} as const
+
+const FIXTURE_ALIASES: Record<string, number> = {
+  'recruiter@rc3.dev': 1,
+  'ayesha@rc3.dev': 2,
+  'bilal@rc3.dev': 3,
+  'sana@rc3.dev': 4,
+}
+
 const makeAuth = (user: User): AuthResponse => ({ token: `fixture.${user.id}.${Date.now()}`, user })
 
 const userFromToken = (token: string | null): User | null => {
@@ -132,8 +148,11 @@ export const auth = {
       return request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
     }
     await delay(300)
-    const user = findUser(email.trim())
-    if (!user || password !== DEMO_PASSWORD) fail(401, 'Email or password is incorrect.')
+    const key = email.trim().toLowerCase()
+    const aliasId = FIXTURE_ALIASES[key]
+    const user = aliasId ? userById(aliasId) : findUser(key)
+    const accepted = aliasId ? ['RecruitPass123', 'CandidatePass123', DEMO_PASSWORD] : [DEMO_PASSWORD]
+    if (!user || !accepted.includes(password)) fail(401, 'Email or password is incorrect.')
     return makeAuth(user!)
   },
 

@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogIn, TriangleAlert } from 'lucide-react'
 import { useAuth } from '../../lib/auth'
-import { ApiError, DEMO_PASSWORD, USE_FIXTURES } from '../../lib/api'
+import { ApiError, DEMO_ACCOUNTS } from '../../lib/api'
 import { Button, Field, Input } from '../../components/ui/core'
 import { AuthFooter, AuthLayout, AuthSwitch } from './AuthLayout'
 
 const DEMOS = [
-  { role: 'Recruiter', email: 'recruiter@hire.dev', name: 'Nadia Rahman' },
-  { role: 'Candidate', email: 'candidate@hire.dev', name: 'Ayesha Khan' },
+  { role: 'Recruiter', email: DEMO_ACCOUNTS.recruiter.email, password: DEMO_ACCOUNTS.recruiter.password, name: 'Nadia Rahman' },
+  { role: 'Candidate', email: DEMO_ACCOUNTS.candidate.email, password: DEMO_ACCOUNTS.candidate.password, name: 'Ayesha Khan' },
 ]
 
 export function LoginPage() {
@@ -43,7 +43,7 @@ export function LoginPage() {
 
   const useDemo = (demo: (typeof DEMOS)[number]) => {
     setEmail(demo.email)
-    setPassword(DEMO_PASSWORD)
+    setPassword(demo.password)
     setError(null)
   }
 
@@ -87,9 +87,8 @@ export function LoginPage() {
         </Button>
       </form>
 
-      {USE_FIXTURES && (
-        <div className="mt-6">
-          <p className="text-micro font-medium uppercase tracking-wider text-faint">Demo accounts</p>
+      <div className="mt-6">
+        <p className="text-micro font-medium uppercase tracking-wider text-faint">Demo accounts</p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {DEMOS.map((d) => (
               <button
@@ -103,11 +102,10 @@ export function LoginPage() {
               </button>
             ))}
           </div>
-          <p className="mt-2 text-micro text-faint">
-            Click a card to fill the form, then sign in.
-          </p>
-        </div>
-      )}
+        <p className="mt-2 text-micro text-faint">
+          Seeded accounts — click a card to fill the form, then sign in.
+        </p>
+      </div>
 
       <AuthSwitch prompt="New here?" to="/register" label="Create an account" />
     </AuthLayout>
