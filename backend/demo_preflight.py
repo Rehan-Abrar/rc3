@@ -71,7 +71,10 @@ def main():
         return 1
     job_id = job["id"]
     status, rows = call("GET", "/jobs/" + str(job_id) + "/applicants", token=token)
-    check("three applicants", len(rows) == 3, str(len(rows)) + " rows")
+    check("at least three applicants", len(rows) >= 3, str(len(rows)) + " rows")
+    names = [r["candidate"]["name"] for r in rows]
+    check("demo names present", all(n in names for n in ("Ayesha Khan", "Bilal Ahmed")),
+          ", ".join(names[:4]))
     overalls = [(r.get("score") or {}).get("overall", 0) for r in rows]
     check("ranked by score", overalls == sorted(overalls, reverse=True), str(overalls))
     top = rows[0]

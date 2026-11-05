@@ -57,6 +57,13 @@ def run_assessment(db: Session, app: m.Application, actor_id: int) -> m.Assessme
          for c in chunk_rows]) if chunk_rows else []
     similarities = matching.gate_requirements(reqs, chunk_vecs) if chunk_vecs else {}
 
+    # Does the résumé actually talk about anything this job wants? A genuinely unrelated CV
+    # (no literal mention, low semantic similarity) is legitimately "no evidence" - that is a
+    # real answer, not a broken completion, and must keep ai_mode=groq.
+    lowered = (resume.raw_text or "").lower()
+    mentions_any = any((r["label"] or "").lower() in lowered for r in reqs)
+    genuinely_unrelated = not mentions_any and max(similarities.values() or [0.0]) < 0.35
+
     ai_mode, summary = "degraded", ""
     verdicts: dict[int, dict] = {}
     for attempt in range(2):
@@ -72,13 +79,13 @@ def run_assessment(db: Session, app: m.Application, actor_id: int) -> m.Assessme
         # requirement unevidenced; that is a bad completion, so ask once more before scoring it.
         all_empty = verdicts and all(v["status"] in ("not_evidenced", "confirmed_absent")
                                     for v in verdicts.values())
-        if not (attempt == 0 and all_empty):
+        if not (attempt == 0 and all_empty and not genuinely_unrelated):
             break
 
     # Still nothing after a retry: do not present that as a confident low score. Fall back to
     # semantic similarity and label the assessment degraded so the number is never overstated.
-    if ai_mode == "groq" and verdicts and all(
-            v["status"] in ("not_evidenced", "confirmed_absent") for v in verdicts.values()):
+    if (ai_mode == "groq" and not genuinely_unrelated and verdicts and all(
+            v["status"] in ("not_evidenced", "confirmed_absent") for v in verdicts.values())):
         verdicts = {}
         ai_mode = "degraded"
         summary = ("AI returned no evidence for any requirement. Showing semantic similarity only; "
