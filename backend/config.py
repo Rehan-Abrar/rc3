@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 
 
@@ -49,21 +50,26 @@ CORS_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 
-_KEYS = [os.getenv("GROQ_API_KEY"), os.getenv("GROQ1"), os.getenv("GROQ2")]
-
-
 def groq_keys() -> list[str]:
-    """Groq credentials from backend/.env: GROQ1 then GROQ2 (GROQ_API_KEY first if set).
+    """All Groq credentials, in GROQ1, GROQ2, ... numeric order (GROQ_API_KEY first).
 
-    Order is preference only. A 429 is treated as a rate limit and surfaced,
-    never a reason to hammer the next key.
+    The keys belong to different organisations, so each has its own rate limit: on a 429
+    the client fails over to the next credential instead of stalling. If every key is
+    limited the limit is surfaced as-is (ai_mode=degraded), never hidden.
     """
     seen, out = set(), []
-    for k in _KEYS:
-        k = (k or "").strip()
-        if k and k not in seen:
-            seen.add(k)
-            out.append(k)
+    candidates = [os.getenv("GROQ_API_KEY")]
+    numbered = []
+    for name, value in os.environ.items():
+        m = re.fullmatch(r"GROQ(\d+)", name)
+        if m and (value or "").strip():
+            numbered.append((int(m.group(1)), value.strip()))
+    candidates += [v for _, v in sorted(numbered)]
+    for key in candidates:
+        key = (key or "").strip()
+        if key and key.startswith("gsk_") and key not in seen:
+            seen.add(key)
+            out.append(key)
     return out
 
 

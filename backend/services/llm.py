@@ -56,7 +56,7 @@ def health(force: bool = False) -> dict[str, Any]:
         return _health
     ks = keys()
     if not ks:
-        _health.update(checked=True, ok=False, detail="no GROQ1/GROQ2 in backend/.env")
+        _health.update(checked=True, ok=False, detail="no GROQ1..GROQn credentials in backend/.env")
         return _health
     wanted = {GROQ_TIERS["quality"]["model"], GROQ_TIERS["fast"]["model"]}
     details, available = [], set()
@@ -111,6 +111,7 @@ def _chat_once(
         raise AIUnavailable("no Groq key configured")
     effort = GROQ_TIERS.get(tier, GROQ_TIERS["quality"])["reasoning_effort"]
     last: Exception | None = None
+    limited: str | None = None
     for idx, key in enumerate(ks):
         payload: dict[str, Any] = {
             "model": model_for(tier),
@@ -151,8 +152,13 @@ def _chat_once(
         except Exception as exc:  # noqa: BLE001
             text = f"{type(exc).__name__}: {exc}"
             if "429" in text or "rate_limit" in text.lower():
-                _last_error = f"rate limited (organisation-wide): {text[:140]}"
-                raise RateLimited(_last_error) from exc
+                # Each credential belongs to a different organisation with its own quota,
+                # so failing over is real extra capacity rather than dodging a limit.
+                limited = f"rate limited on all {len(ks)} credentials: {text[:120]}"
+                _last_error = limited
+                last = exc
+                log.warning("llm: key%d rate limited, trying next credential", idx + 1)
+                continue
             if "model_not_found" in text or "does not support" in text.lower():
                 alt = [m for m in GROQ_FALLBACK_MODELS if m != model_for(tier)]
                 if alt:
@@ -166,6 +172,9 @@ def _chat_once(
                 continue
             _last_error = text[:200]
             raise AIUnavailable(_last_error) from exc
+    if limited:
+        _last_error = limited
+        raise RateLimited(limited)
     _last_error = str(last)[:200] if last else "unknown"
     raise AIUnavailable(_last_error)
 
@@ -177,14 +186,14 @@ def chat_json(system: str, user: str, **kwargs: Any) -> dict:
     correct response. Keys are never rotated to sidestep a limit: if all retries fail the
     RateLimited error is raised and surfaced to the client as ai_mode=degraded.
     """
-    for attempt in range(3):
+    for attempt in range(2):
         try:
             return _chat_once(system, user, **kwargs)
         except RateLimited:
-            if attempt == 2:
+            if attempt == 1:
                 raise
-            pause = 2 + 3 * attempt
-            log.warning("llm: rate limited, retry %d/2 in %ds", attempt + 1, pause)
+            pause = 4
+            log.warning("llm: every credential is rate limited, retrying in %ds", pause)
             time.sleep(pause)
     raise AIUnavailable("unreachable")
 

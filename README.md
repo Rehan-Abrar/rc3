@@ -32,6 +32,9 @@ contracts/  types.ts + fixtures: the frozen API contract both sides build agains
   `openai/gpt-oss-120b` for resume extraction, evidence verification and explanations;
   `openai/gpt-oss-20b` for requirement extraction, question generation and query parsing.
   Strict Structured Outputs (`json_schema`, `strict: true`) on every call.
+- **Credential pool:** any number of `GROQ1`, `GROQ2`, `GROQ3`... keys can be configured; on a
+  rate limit the client fails over to the next credential and only surfaces the limit
+  (`ai_mode=degraded`) once every credential is exhausted.
 - **Embeddings:** `model2vec` static embeddings (256-d, numpy only, no torch) with a lexical
   fallback. The provider actually used is reported by `/api/health` and shown in the UI - the
   fallback is never mislabelled as semantic.
