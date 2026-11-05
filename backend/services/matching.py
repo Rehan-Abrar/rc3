@@ -26,7 +26,9 @@ ADJUDICATE_SCHEMA = {
                     "status": {"type": "string",
                                "enum": ["matched", "partial", "not_evidenced", "confirmed_absent"]},
                     "reason": {"type": "string"},
-                    "quote": {"type": "string"},
+                    # null is legal: "not_evidenced" has nothing to quote. Strict schemas
+                    # reject an unlisted null, which surfaced as a 400 for sparse resumes.
+                    "quote": {"type": ["string", "null"]},
                 },
                 "required": ["requirement_id", "status", "reason", "quote"],
                 "additionalProperties": False,
@@ -107,8 +109,17 @@ def adjudicate(reqs: list[dict], chunks: list[dict], masked: str) -> tuple[dict[
     """(per-requirement verdicts, summary). Raises llm.AIUnavailable on failure."""
     user = (f"REQUIREMENTS:\n{_requirements_block(reqs)}\n\n"
             f"RESUME EXCERPTS:\n{_excerpts_block(chunks, masked)}")
-    data = llm.chat_json(SYSTEM, user, tier="quality", schema=ADJUDICATE_SCHEMA,
-                         schema_name="assessment", max_tokens=2600)
+    try:
+        data = llm.chat_json(SYSTEM, user, tier="quality", schema=ADJUDICATE_SCHEMA,
+                             schema_name="assessment", max_tokens=2600)
+    except llm.AIUnavailable as exc:
+        # Strict-schema validation can reject an otherwise usable completion. Retry once in
+        # JSON mode; every field is re-validated in Python below, so nothing is trusted blindly.
+        msg = str(exc).lower()
+        if "generated json" not in msg and "json_validate" not in msg and "schema" not in msg:
+            raise
+        data = llm.chat_json(SYSTEM + " Return ONLY the JSON object, no prose.",
+                             user, tier="quality", schema=None, max_tokens=2600)
     verdicts: dict[int, dict] = {}
     valid = {r["id"] for r in reqs}
     for row in data.get("requirements") or []:

@@ -16,9 +16,11 @@ from security import hash_password
 from services import assess as assess_svc
 from services import extract, pdf, skills
 
-RECRUITER = ("recruiter@rc3.dev", "RecruitPass123", "Rehan Abrar")
+# Emails/passwords match the frontend's demo buttons (DEMO_PASSWORD = demo1234),
+# so one click on the login page signs you into the seeded demo account.
+RECRUITER = ("recruiter@hire.dev", "demo1234", "Rehan Abrar")
 CANDIDATES = [
-    ("ayesha@rc3.dev", "CandidatePass123", "Ayesha Khan", "strong"),
+    ("candidate@hire.dev", "demo1234", "Ayesha Khan", "strong"),
     ("bilal@rc3.dev", "CandidatePass123", "Bilal Ahmed", "partial"),
     ("sana@rc3.dev", "CandidatePass123", "Sana Iqbal", "adjacent"),
 ]

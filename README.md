@@ -61,10 +61,12 @@ Seed credentials:
 
 | Role | Email | Password |
 |---|---|---|
-| Recruiter | `recruiter@rc3.dev` | `RecruitPass123` |
-| Candidate (strong) | `ayesha@rc3.dev` | `CandidatePass123` |
+| Recruiter | `recruiter@hire.dev` | `demo1234` |
+| Candidate (strong) | `candidate@hire.dev` | `demo1234` |
 | Candidate (partial) | `bilal@rc3.dev` | `CandidatePass123` |
 | Candidate (adjacent) | `sana@rc3.dev` | `CandidatePass123` |
+
+The first two match the login page's demo buttons, so one click signs you in.
 
 ## Tests
 

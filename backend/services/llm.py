@@ -8,6 +8,7 @@
 import hashlib
 import json
 import logging
+import time
 from typing import Any
 
 from config import GROQ_BASE_URL, GROQ_FALLBACK_MODELS, GROQ_TIERS, groq_keys
@@ -89,7 +90,7 @@ def clear_cache() -> None:
     _cache.clear()
 
 
-def chat_json(
+def _chat_once(
     system: str,
     user: str,
     *,
@@ -167,6 +168,25 @@ def chat_json(
             raise AIUnavailable(_last_error) from exc
     _last_error = str(last)[:200] if last else "unknown"
     raise AIUnavailable(_last_error)
+
+
+def chat_json(system: str, user: str, **kwargs: Any) -> dict:
+    """chat_once with bounded retry on 429.
+
+    Rate limits are organisation-wide, so retrying the same request after a pause is the
+    correct response. Keys are never rotated to sidestep a limit: if all retries fail the
+    RateLimited error is raised and surfaced to the client as ai_mode=degraded.
+    """
+    for attempt in range(3):
+        try:
+            return _chat_once(system, user, **kwargs)
+        except RateLimited:
+            if attempt == 2:
+                raise
+            pause = 2 + 3 * attempt
+            log.warning("llm: rate limited, retry %d/2 in %ds", attempt + 1, pause)
+            time.sleep(pause)
+    raise AIUnavailable("unreachable")
 
 
 def status() -> dict[str, Any]:

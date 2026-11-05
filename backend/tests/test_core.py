@@ -32,6 +32,7 @@ Python, Django, PostgreSQL, Docker, REST APIs
 
 @pytest.fixture(scope="session", autouse=True)
 def _db():
+    assert "rc3_test" in str(engine.url), f"refusing to drop tables in {engine.url}"
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     yield

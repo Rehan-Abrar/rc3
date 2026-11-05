@@ -25,7 +25,7 @@ DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 (DATA_DIR / "resumes").mkdir(exist_ok=True)
 
-DB_PATH = DATA_DIR / "app.db"
+DB_PATH = Path(os.environ.get("RC3_TEST_DB") or (DATA_DIR / "app.db"))
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 JWT_SECRET = os.getenv("JWT_SECRET", "dev-only-change-me-comp-secret")
