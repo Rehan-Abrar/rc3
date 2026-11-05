@@ -488,12 +488,12 @@ export const applications = {
     return note
   },
 
-  async reassess(id: number): Promise<Score> {
-    if (!USE_FIXTURES) return request<Score>(`/applications/${id}/assess`, { method: 'POST' })
+  async reassess(id: number): Promise<Assessment> {
+    if (!USE_FIXTURES) return request<Assessment>(`/applications/${id}/assess`, { method: 'POST' })
     await delay(1200)
     const found = ASSESSMENTS.find((a) => a.application_id === id)
     if (!found) fail(404, 'No assessment available for this application.')
-    return toScore(found!)
+    return found!
   },
 }
 
@@ -702,7 +702,15 @@ export const talentApi = {
   },
 
   async compare(ids: number[], jobId: number): Promise<CompareResponse> {
-    if (!USE_FIXTURES) return request<CompareResponse>(`/talent/compare?ids=${ids.join(',')}&job_id=${jobId}`)
+    if (!USE_FIXTURES) {
+      // The API returns rows only; the page needs the role for its header.
+      const [res, job] = await Promise.all([
+        request<{ rows: CompareResponse['rows'] }>(`/talent/compare?ids=${ids.join(',')}&job_id=${jobId}`),
+        request<JobDetail>(`/jobs/${jobId}`).catch(() => null),
+      ])
+      if (!job) throw new ApiError('That job could not be loaded.', 404)
+      return { job, rows: res.rows }
+    }
     await delay(300)
     const job = jobSummaries().find((j) => j.id === jobId)!
     const rows: CompareRow[] = ids.map((id) => {
@@ -726,15 +734,21 @@ export const talentApi = {
   },
 
   async recommended(): Promise<RecommendedJob[]> {
-    if (!USE_FIXTURES) return request<RecommendedJob[]>('/candidates/jobs/recommended')
+    if (!USE_FIXTURES) {
+      const res = await request<{ jobs: RecommendedJob[]; mode?: string; note?: string }>('/candidates/jobs/recommended')
+      return res.jobs ?? []
+    }
     await delay(320)
     return jobSummaries()
       .filter((j) => j.status === 'open')
       .map((j) => ({
-        job: j,
-        reason: 'Matches React and TypeScript evidence in your resume',
-        matched: ['React', 'TypeScript'],
+        job_id: j.id,
+        title: j.title,
+        department: j.department,
+        similarity: 0.82,
         score: 82,
+        matched_skills: ['React', 'TypeScript'],
+        reason: 'Matches React and TypeScript evidence in your resume',
       }))
   },
 }
