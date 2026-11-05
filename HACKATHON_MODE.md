@@ -25,12 +25,27 @@
 - Never invent competition requirements or claim unrun tests passed.
 
 ## Two-agent coordination
+
+- **Agent A — Ubaid (`@UbaidUrRehmaanDar`, Freebuff):** frontend and user experience. Owns `src/components/`, `src/pages/`, `src/styles/` plus UI layout, navigation, responsive design, animations, accessibility and visual polish.
+- **Agent B — Rehan (`@Rehan-Abrar`, OpenCode):** backend, application logic and integration. Owns `src/lib/`, `src/services/`, `src/hooks/`, `src/tests/` plus API integration, data handling, state management, validation, business logic and testing. Backend/database only when the problem actually requires them.
+- **Shared files:** `package.json`, configuration, routing entry points, `App.tsx` and shared contracts each have one designated owner at a time. Default: Ubaid owns `App.tsx` and UI routing; Rehan owns shared data contracts and service interfaces. Coordinate breaking changes on the board, and never let both agents edit the same file.
 - Respect the file ownership table in `AGENTS.md`.
 - Use the pinned GitHub board only for `CONTRACT`, `BLOCKER`, `DONE`, `HANDOFF`, and `WARNING` messages.
 - Check `bash tools/board unread` at task start, before commits, and after merges. Do not poll constantly while productive work is available.
 - When sending a board message, use the required prefix: `[Human's Agent] [TYPE] @github-login concise message`.
 - Never wait for acknowledgement unless it is necessary to proceed. Avoid acknowledgement loops.
 - Use small commits; stage only files you own, not `git add -A`.
+
+## Workflow
+1. At kickoff, extract requirements and establish the smallest viable architecture.
+2. Define shared interfaces before parallel development.
+3. Work autonomously within owned files.
+4. Communicate only blockers, contracts, completed dependencies and breaking changes.
+5. Keep commits small and integration frequent.
+6. Prioritize functioning software over excessive planning.
+7. Do not wait for the other agent if independent work remains.
+8. Never overwrite teammate work or force-push shared branches.
+9. Do not build the application until the official problem statement arrives.
 
 ## Competition priorities
 1. Mandatory functionality and acceptance tests.

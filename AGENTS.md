@@ -8,8 +8,8 @@ Two people, two laptops, both Windows with Git Bash.
 
 | Human | GitHub login | Role | Agent |
 |---|---|---|---|
-| Ubaid Ur Rehmaan Dar | `@UbaidUrRehmaanDar` | **Agent A** — pages, components, styling, responsive UI | Freebuff |
-| Rehan Abrar (repo owner) | `@Rehan-Abrar` | **Agent B** — services, logic, state, validation, tests | OpenCode |
+| Ubaid Ur Rehmaan Dar | `@UbaidUrRehmaanDar` | **Agent A** — frontend and user experience | Freebuff |
+| Rehan Abrar (repo owner) | `@Rehan-Abrar` | **Agent B** — backend, application logic and integration | OpenCode |
 
 - Board issue: **#1** (`BOARD_ISSUE` unset = 1). Only set `BOARD_ISSUE` if the board issue number changes.
 - Requirements on both laptops: `bash`, `git`, and the GitHub CLI (`gh`) logged in once via `gh auth login`.
@@ -78,15 +78,42 @@ Provisional until the problem statement is released and humans confirm it. The c
 
 | Area | Owner (GitHub login) | Folders |
 |---|---|---|
-| Pages, components, styling, responsive UI | `@UbaidUrRehmaanDar` (Agent A, Freebuff) | `src/pages/`, `src/components/`, `src/styles/`, layout/theme files |
-| Services, application logic, state, validation, tests | `@Rehan-Abrar` (Agent B, OpenCode) | `src/services/`, `src/lib/`, `src/state/`, `src/validation/`, `tests/` |
-| Shared files and config: package manifests, lockfiles, build/lint config, CI, `.env*`, README, `AGENTS.md`, `tools/board`, `TEAM_SETUP.md` | **Humans only** | `package.json`, `package-lock.json`, `pnpm-lock.yaml`, `vite.config.*`, `tsconfig*.json`, `.eslintrc*`, `.github/workflows/`, `.env*` |
+| Frontend and user experience | `@UbaidUrRehmaanDar` (Agent A, Freebuff) | `src/components/`, `src/pages/`, `src/styles/` |
+| Backend, application logic and integration | `@Rehan-Abrar` (Agent B, OpenCode) | `src/lib/`, `src/services/`, `src/hooks/`, `src/tests/` |
 
-Rules for the table:
+**Agent A (Ubaid) owns frontend presentation:** UI layout, navigation, responsive design, animations, accessibility and visual polish.
 
-- Agents do **not** edit another owner's folders or the shared rows without a `[HANDOFF]` on the board first.
-- Shared files/config changes are human-controlled: an agent proposes the change on the board (`[CONTRACT]` or `[BLOCKER]`) and a human makes it. Nobody installs dependencies or adds a framework without a human deciding it.
+**Agent B (Rehan) owns application functionality:** API integration, data handling, state management, validation, business logic and testing. Backend/database only when the problem actually requires them.
+
+### Shared files — one designated owner at a time
+
+`package.json`, configuration, routing entry points, `App.tsx` and shared contracts must each have **one designated owner at a time**. Default assignment:
+
+| Shared file | Owner |
+|---|---|
+| `App.tsx`, UI routing entry points | `@UbaidUrRehmaanDar` |
+| Shared data contracts and service interfaces (`src/lib/contracts*`, `src/services/`) | `@Rehan-Abrar` |
+| `package.json`, lockfiles, build/lint config, CI, `.env*`, `AGENTS.md`, `tools/board`, `TEAM_SETUP.md` | **Humans only** |
+
+Rules:
+
+- Agents do **not** edit another owner's files or folders without a `[HANDOFF]` on the board first.
+- Coordinate every breaking change (contract, shared file, routing, env var) through the board before pushing it.
+- Avoid both agents editing the same file: if you need a change in a file you do not own, post `[CONTRACT]` and let the owner apply it.
 - Ownership moves only by human decision, announced with `[HANDOFF]`.
+
+## 4a. Workflow
+
+1. At kickoff, extract requirements and establish the smallest viable architecture.
+2. Define shared interfaces before parallel development.
+3. Work autonomously within owned files.
+4. Communicate only blockers, contracts, completed dependencies and breaking changes.
+5. Keep commits small and integration frequent.
+6. Prioritize functioning software and quick execution over excessive planning.
+7. Do not wait for the other agent if independent work remains.
+8. Avoid lengthy narration, repeated approval requests and unnecessary tooling.
+9. Never overwrite teammate work or force-push shared branches.
+10. Do not build the application until the official problem statement arrives.
 
 ## 5. Duplicate work around the board
 
