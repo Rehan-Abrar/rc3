@@ -43,7 +43,6 @@ export function InterviewPanel({ applicationId, candidateName, jobTitle }: { app
       await interviewApi.create({
         application_id: applicationId,
         scheduled_at: new Date(when).toISOString(),
-        interviewer_id: 1,
         interview_type: type,
         duration_min: duration,
         location,

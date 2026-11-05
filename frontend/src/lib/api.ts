@@ -45,7 +45,9 @@ import { ASSESSMENTS, resumes as fixtureResumes } from './fixtures.assessments'
  *  - VITE_USE_FIXTURES=0 calls the FastAPI contract at VITE_API_BASE (default /api).
  * Components never branch on this.
  */
-export const USE_FIXTURES = (import.meta.env.VITE_USE_FIXTURES ?? '1') !== '0'
+// Live API by default: fixtures are opt-in with VITE_USE_FIXTURES=1 so nobody demos
+// against mock data (and mock 'Nadia Rahman' accounts) by accident.
+export const USE_FIXTURES = (import.meta.env.VITE_USE_FIXTURES ?? '0') === '1'
 const BASE = import.meta.env.VITE_API_BASE ?? '/api'
 const TOKEN_KEY = 'hi.token'
 
@@ -591,12 +593,19 @@ export const interviewApi = {
   async create(input: {
     application_id: number
     scheduled_at: string
-    interviewer_id: number
+    interviewer_id?: number
     interview_type: InterviewType
     duration_min: number
     location?: string
   }): Promise<Interview> {
-    if (!USE_FIXTURES) return request<Interview>('/interviews', { method: 'POST', body: JSON.stringify(input) })
+    // Default the interviewer to the signed-in recruiter instead of a hardcoded id.
+    const interviewer_id = input.interviewer_id ?? userFromToken(getToken())?.id ?? 1
+    if (!USE_FIXTURES) {
+      return request<Interview>('/interviews', {
+        method: 'POST',
+        body: JSON.stringify({ ...input, interviewer_id }),
+      })
+    }
     await delay(320)
     const start = new Date(input.scheduled_at).getTime()
     const end = start + input.duration_min * 60_000
@@ -622,8 +631,8 @@ export const interviewApi = {
       job_title: app ? jobSummaries().find((j) => j.id === app.job_id)?.title ?? '' : '',
       scheduled_at: input.scheduled_at,
       duration_min: input.duration_min,
-      interviewer_id: input.interviewer_id,
-      interviewer_name: 'Nadia Rahman',
+      interviewer_id,
+      interviewer_name: userById(interviewer_id)?.full_name ?? 'Interviewer',
       interview_type: input.interview_type,
       location: input.location ?? 'Google Meet',
       status: 'scheduled',

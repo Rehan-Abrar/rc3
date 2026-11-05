@@ -33,7 +33,6 @@ export function InterviewsPage() {
       await interviewApi.create({
         application_id: Number(appId),
         scheduled_at: new Date(when).toISOString(),
-        interviewer_id: 1,
         interview_type: type,
         duration_min: duration,
         location: 'Google Meet',
