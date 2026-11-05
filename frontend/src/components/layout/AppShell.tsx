@@ -80,13 +80,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const isRecruiter = user?.role === 'recruiter'
   const navItems = isRecruiter ? RECRUITER_NAV : CANDIDATE_NAV
-  const title = useMemo(() => TITLES.find(([re]) => re.test(location.pathname))?.[1] ?? 'Hire Intelligence', [location.pathname])
+  const title = useMemo(() => TITLES.find(([re]) => re.test(location.pathname))?.[1] ?? 'Match.Wise', [location.pathname])
 
   const sidebar = (
     <div className="flex h-full w-[236px] shrink-0 flex-col overflow-hidden border-r border-line bg-surface">
       <div className="flex h-16 shrink-0 items-center border-b border-line px-5">
         <NavLink to={isRecruiter ? '/recruiter' : '/candidate'} className="font-display text-[17px] font-medium tracking-tight text-accent">
-          Hire Intelligence
+          Match.Wise
         </NavLink>
       </div>
 

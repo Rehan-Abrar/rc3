@@ -21,14 +21,14 @@ export function AuthLayout({ children, footer }: { children: ReactNode; footer?:
               <Sparkles className="h-4 w-4" aria-hidden />
             </span>
             <div>
-              <p className="font-display text-[15px] font-medium tracking-tight">Hire Intelligence</p>
+              <p className="font-display text-[15px] font-medium tracking-tight">Match.Wise</p>
               <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/60">Recruitment &amp; talent intelligence</p>
             </div>
           </div>
 
           <p className="mt-14 font-mono text-[11px] uppercase tracking-[0.12em] text-white/70">[ Evidence-first hiring ]</p>
           <h1 className="mt-3 max-w-lg font-display text-[clamp(34px,4.2vw,52px)] font-light leading-[1.05] tracking-[-0.02em] text-white text-balance">
-            Hiring decisions, with receipts.
+            Match.Wise recommends. Your team decides.
           </h1>
           <p className="mt-4 max-w-md body-copy text-[15px] leading-relaxed text-white/75">
             Every AI score is broken into weighted evidence and tied to a sentence in the resume. Missing skills are shown
@@ -86,7 +86,7 @@ export function AuthLayout({ children, footer }: { children: ReactNode; footer?:
               <span className="flex h-7 w-7 items-center justify-center bg-accent text-accent-ink">
                 <Sparkles className="h-4 w-4" aria-hidden />
               </span>
-              <p className="font-display text-[15px] font-medium tracking-tight text-accent">Hire Intelligence</p>
+              <p className="font-display text-[15px] font-medium tracking-tight text-accent">Match.Wise</p>
             </div>
             {children}
           </div>

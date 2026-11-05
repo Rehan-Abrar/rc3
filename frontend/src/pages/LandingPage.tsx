@@ -38,7 +38,7 @@ export function LandingPage() {
       <nav className="sticky top-0 z-40 border-b border-line border-t-[2.5px] border-t-accent bg-surface">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:px-8">
           <Link to="/" className="shrink-0 font-display text-[17px] font-medium tracking-tight text-accent">
-            Hire Intelligence
+            Match.Wise
           </Link>
           <div className="hidden flex-1 items-center gap-5 md:flex">
             {[
@@ -223,7 +223,7 @@ export function LandingPage() {
       <footer className="bg-ink px-4 py-12 text-white sm:px-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="font-display text-lg font-medium tracking-tight text-white">Hire Intelligence</p>
+            <p className="font-display text-lg font-medium tracking-tight text-white">Match.Wise</p>
             <p className="mt-1 max-w-sm body-copy text-[13px] leading-relaxed text-white/60">
               Evidence-first recruitment and talent intelligence. Built for a hackathon, honest about its modes.
             </p>
