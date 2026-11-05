@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dark-neutral recruiter console. One accent, quiet borders, no decoration. */
+    --canvas: 11 14 19;
+    --surface: 17 21 28;
+    --elevated: 24 29 38;
+    --line: 39 46 58;
+    --ink: 233 238 246;
+    --muted: 156 167 183;
+    --faint: 108 120 137;
+    --accent: 125 156 255;
+    --accent-ink: 8 12 20;
+    --good: 61 220 151;
+    --warn: 240 178 74;
+    --bad: 244 114 128;
+  }
+
+  * {
+    @apply border-line;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-sans text-base;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: rgb(var(--accent) / 0.28);
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent) / 0.85);
+    outline-offset: 2px;
+  }
+
+  /* Numbers line up in tables and scoreboards. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply bg-surface text-ink;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--line));
+    border-radius: 999px;
+    border: 3px solid rgb(var(--canvas));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--faint) / 0.6);
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-card border border-line bg-surface;
+  }
+
+  .panel-header {
+    @apply flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-medium text-muted;
+  }
+
+  .field {
+    @apply w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink placeholder:text-faint transition-colors;
+  }
+  .field:hover {
+    @apply border-faint/60;
+  }
+  .field:focus {
+    @apply border-accent/70 outline-none ring-2 ring-accent/20;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-micro font-medium;
+  }
+
+  .row-hover {
+    @apply transition-colors hover:bg-elevated/60;
+  }
+
+  .divider {
+    @apply h-px w-full bg-line;
+  }
+
+  .link {
+    @apply text-accent underline-offset-2 hover:underline;
+  }
+}
+
+@layer utilities {
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
