@@ -109,9 +109,15 @@ def application_detail(app_id: int, db: Session = Depends(get_db),
         item = S.application(a)
         # A recruiter's manual override is internal reasoning, not something the candidate sees.
         item.update({"override_score": None, "override_reason": None})
+        ivs = db.scalars(select(m.Interview).where(m.Interview.application_id == a.id)
+                         .order_by(m.Interview.scheduled_at)).all()
+        own_interviews = [S.interview(i, user.full_name, job.title if job else "",
+                                      (db.get(m.User, i.interviewer_id).full_name
+                                       if db.get(m.User, i.interviewer_id) else ""))
+                          for i in ivs]
         item.update({"job": S.job_summary(db, job),
                      "assessment": assess_svc.assessment_payload(db, a),
-                     "questions": [], "interviews": [], "notes": [],
+                     "questions": [], "interviews": own_interviews, "notes": [],
                      "events": [S.event(e, (db.get(m.User, e.actor_id).full_name
                                             if db.get(m.User, e.actor_id) else "system"))
                                 for e in events],

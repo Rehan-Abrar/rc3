@@ -116,18 +116,57 @@ def compare(ids: str = Query(min_length=1), job_id: int | None = None,
     return {"rows": out}
 
 
+_EMAIL_IN_TEXT = None
+
+
+def _resume_signals(db: Session) -> dict[int, dict]:
+    """Latest parsed résumé per candidate: normalised text, contacts found in it, embedding."""
+    import re
+
+    from services import pdf as pdf_svc
+
+    out: dict[int, dict] = {}
+    rows = db.execute(
+        select(m.Resume.candidate_id, m.Resume.raw_text, m.Resume.id)
+        .where(m.Resume.parse_status == "ok").order_by(m.Resume.id)).all()
+    for cand_id, raw, _rid in rows:
+        text = (raw or "").strip()
+        if not text:
+            continue
+        norm = " ".join(text.lower().split())
+        emails = set(re.findall(r"[\w.+-]+@[\w-]+\.[\w.]+", text.lower()))
+        phones = {"".join(ch for ch in p if ch.isdigit())[-9:]
+                  for p in re.findall(r"(?:\+?\d[\d\s-]{7,})", text)}
+        out[cand_id] = {"norm": norm, "emails": {e for e in emails if "@" in e},
+                        "phones": {p for p in phones if len(p) >= 9},
+                        "vector": embeddings.encode([text[:1200]])[0]}
+    return out
+
+
 @router.get("/talent/duplicates")
 def duplicates(db: Session = Depends(get_db), recruiter: m.User = Depends(require_recruiter)):
+    """Same person, twice. Compares account identity AND résumé content, because the usual
+    duplicate is one candidate applying twice with two emails and the same CV."""
     cands = db.scalars(select(m.User).where(m.User.role == "candidate")).all()
+    signals = _resume_signals(db)
     out = []
     for i, a in enumerate(cands):
         for b in cands[i + 1:]:
             reason, sim = None, 0.0
-            sa = (a.email or "").lower()
-            sb = (b.email or "").lower()
+            sa, sb = (a.email or "").lower(), (b.email or "").lower()
+            ra, rb = signals.get(a.id), signals.get(b.id)
             if sa and sa == sb:
                 reason, sim = "identical email", 1.0
-            else:
+            elif ra and rb and ra["norm"] == rb["norm"]:
+                reason, sim = "identical résumé text", 1.0
+            elif ra and rb and (ra["emails"] & rb["emails"] or ra["phones"] & rb["phones"]):
+                shared = sorted(ra["emails"] & rb["emails"] | ra["phones"] & rb["phones"])[0]
+                reason, sim = f"same contact detail on both résumés ({shared[:40]})", 0.95
+            elif ra and rb:
+                cos = embeddings.cosine(ra["vector"], rb["vector"])
+                if cos >= 0.92:
+                    reason, sim = "near-identical résumé", round(cos, 2)
+            if not reason:
                 ta = [t for t in (a.full_name or "").lower().split() if len(t) > 2]
                 tb = [t for t in (b.full_name or "").lower().split() if len(t) > 2]
                 if ta and tb and ta[0] == tb[0] and set(ta) & set(tb):
@@ -137,6 +176,22 @@ def duplicates(db: Session = Depends(get_db), recruiter: m.User = Depends(requir
                             "duplicate": {"id": b.id, "name": b.full_name, "email": b.email},
                             "reason": reason, "similarity": sim})
     return out
+
+
+def _purge_application(db: Session, app_row: m.Application) -> None:
+    """Remove an application and every row that hangs off it (no orphaned scores/notes)."""
+    from sqlalchemy import delete as _delete
+
+    ass = db.scalar(select(m.Assessment).where(m.Assessment.application_id == app_row.id))
+    if ass:
+        db.execute(_delete(m.AssessmentSkill).where(m.AssessmentSkill.assessment_id == ass.id))
+        db.delete(ass)
+    for iv in db.scalars(select(m.Interview).where(m.Interview.application_id == app_row.id)).all():
+        db.execute(_delete(m.Feedback).where(m.Feedback.interview_id == iv.id))
+        db.delete(iv)
+    for model in (m.Note, m.InterviewQuestion, m.StatusEvent, m.FinalDecision):
+        db.execute(_delete(model).where(model.application_id == app_row.id))
+    db.delete(app_row)
 
 
 @router.post("/talent/merge")
@@ -151,7 +206,7 @@ def merge(body: schemas.MergeIn, db: Session = Depends(get_db),
         clash = db.scalar(select(m.Application).where(
             m.Application.job_id == a.job_id, m.Application.candidate_id == keep.id))
         if clash:
-            db.delete(a)
+            _purge_application(db, a)
         else:
             a.candidate_id = keep.id
             moved += 1

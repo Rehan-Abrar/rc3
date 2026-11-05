@@ -207,3 +207,36 @@ def test_genuinely_unrelated_resume_keeps_groq_mode():
     assert body["ai_mode"] == "groq", body
     assert body["skills"] == 0.0
     assert body["insufficient_evidence"] is True
+
+
+def test_candidate_sees_own_interview_but_not_recruiter_prep():
+    """The candidate portal needs the booked slot; it must never show notes or prep questions."""
+    tag = uuid.uuid4().hex[:8]
+    client = TestClient(app)
+    rec = client.post("/api/auth/register", json={
+        "email": f"slot.rec.{tag}@test.dev", "password": "Password123",
+        "full_name": "Slot Rec", "role": "recruiter"}).json()
+    cand = client.post("/api/auth/register", json={
+        "email": f"slot.cand.{tag}@test.dev", "password": "Password123",
+        "full_name": "Slot Cand", "role": "candidate"}).json()
+    rh, ch = _auth(rec["token"]), _auth(cand["token"])
+    job = client.post("/api/jobs", headers=rh, json={
+        "title": f"Slot Job {tag}", "description": "Python",
+        "requirements": [{"label": "Python", "importance": "required"}]}).json()
+    up = client.post("/api/resumes", headers=ch,
+                     files={"file": ("slot.pdf", _pdf_bytes(SAMPLE), "application/pdf")}).json()
+    app_id = client.post("/api/applications", headers=ch,
+                         json={"job_id": job["id"], "resume_id": up["resume"]["id"]}).json()["id"]
+    client.post(f"/api/applications/{app_id}/stage", headers=rh,
+                json={"to_stage": "shortlisted", "reason": "test"})
+    booked = client.post("/api/interviews", headers=rh, json={
+        "application_id": app_id, "interviewer_id": rec["user"]["id"],
+        "scheduled_at": "2030-05-01T09:00:00", "duration_min": 45,
+        "interview_type": "technical", "location": "Google Meet"})
+    assert booked.status_code == 201, booked.text
+    client.post(f"/api/applications/{app_id}/notes", headers=rh, json={"body": "internal note"})
+
+    mine = client.get(f"/api/applications/{app_id}", headers=ch).json()
+    assert [i["location"] for i in mine["interviews"]] == ["Google Meet"]
+    assert mine["notes"] == []
+    assert mine["questions"] == []
