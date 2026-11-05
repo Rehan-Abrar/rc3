@@ -87,7 +87,8 @@ def search(q: str = Query(min_length=2, max_length=300), db: Session = Depends(g
 
 
 @router.get("/talent/compare")
-def compare(ids: str = Query(min_length=1), db: Session = Depends(get_db),
+def compare(ids: str = Query(min_length=1), job_id: int | None = None,
+            db: Session = Depends(get_db),
             recruiter: m.User = Depends(require_recruiter)):
     try:
         app_ids = [int(x) for x in ids.split(",") if x.strip()][:4]
@@ -135,7 +136,7 @@ def duplicates(db: Session = Depends(get_db), recruiter: m.User = Depends(requir
                 out.append({"keep": {"id": a.id, "name": a.full_name, "email": a.email},
                             "duplicate": {"id": b.id, "name": b.full_name, "email": b.email},
                             "reason": reason, "similarity": sim})
-    return {"pairs": out, "note": "Merging always requires explicit human confirmation."}
+    return out
 
 
 @router.post("/talent/merge")
@@ -197,27 +198,37 @@ def recommended_jobs(db: Session = Depends(get_db),
 
 @router.get("/audit/fairness")
 def fairness_audit(db: Session = Depends(get_db), recruiter: m.User = Depends(require_recruiter)):
+    """Attribute-swap proof that protected fields cannot change a score (R33)."""
     sample = db.scalar(select(m.Resume).where(m.Resume.parse_status == "ok").limit(1))
     if not sample:
         raise HTTPException(status.HTTP_409_CONFLICT,
                             "No parsed resume yet - seed the demo data first")
-    base = fairness.strip_protected(sample.raw_text or "")
-    texts = fairness.audit_texts(base)
-    vecs = embeddings.encode([texts[k] for k in texts])
-    ref = embeddings.cosine(vecs[0], vecs[1])
-    checks = []
-    for key, vec in zip(texts.keys(), vecs):
-        sim = embeddings.cosine(vecs[0], vec)
-        checks.append({"attribute": key, "similarity_to_baseline": round(sim, 6),
-                       "identical": abs(sim - 1.0) < 1e-6})
-    stripped_ok = ("@example.com" not in base) and ("+92" not in base)
-    passed = all(c["identical"] for c in checks if c["attribute"] != "gender") is not None
-    return {"passed": bool(passed and stripped_ok),
-            "checks": checks,
-            "protected_fields_removed": ["name", "gender", "age", "date of birth",
-                                         "marital status", "nationality", "religion",
-                                         "photo", "address", "phone", "email"],
+    texts = {k: fairness.scoring_view(v)
+             for k, v in fairness.audit_texts(sample.raw_text or "").items()}
+    base = texts["baseline"]
+    keys = list(texts)
+    vecs = embeddings.encode([texts[k] for k in keys])
+    baseline = round(100.0 * max(0.0, embeddings.cosine(vecs[0], vecs[0])), 2)
+    checks, cosines = [], []
+    for key, vec in zip(keys, vecs):
+        cos = embeddings.cosine(vecs[0], vec)
+        cosines.append(cos)
+        checks.append({"attribute": key, "baseline": baseline,
+                       "perturbed": round(100.0 * max(0.0, cos), 2),
+                       "identical": abs(cos - 1.0) < 1e-6})
+    perturbed = round(100.0 * min(cosines[1:]), 2) if len(cosines) > 1 else baseline
+    protected_removed = ("@example.com" not in base) and ("+92" not in base)
+    passed = protected_removed and abs(min(cosines) - 1.0) < 1e-6
+    return {"passed": bool(passed), "baseline": baseline, "perturbed": perturbed,
+            "delta": round(abs(baseline - perturbed), 2), "checks": checks,
             "note": ("Scoring runs on the masked resume text, so changing name, gender, age, "
                      "nationality or marital status cannot change a score. Protected fields are "
-                     "stripped before embedding and before the LLM call."),
-            "baseline_gender_similarity": round(ref, 6)}
+                     "stripped before embedding and before the LLM call. Contact details "
+                     "removed: " + ("yes" if protected_removed else "NO"))}
+
+
+@router.post("/audit/merge", status_code=201)
+def merge_alias(body: schemas.MergeIn, db: Session = Depends(get_db),
+                recruiter: m.User = Depends(require_recruiter)):
+    """Alias of /talent/merge, kept because the frontend calls this path."""
+    return merge(body, db, recruiter)

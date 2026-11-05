@@ -67,3 +67,10 @@ def audit_texts(base: str) -> dict[str, str]:
         "marital": base + "\nMarital status: Married",
         "nationality": base + "\nNationality: Pakistani",
     }
+
+
+def scoring_view(text: str) -> str:
+    """The exact view scoring is allowed to see: no protected lines, no bare name line."""
+    out = strip_protected(text or "")
+    lines = [ln for ln in out.splitlines() if not _NAME_LINE.match(ln)]
+    return re.sub(r"[ \t]+", " ", "\n".join(lines)).strip()

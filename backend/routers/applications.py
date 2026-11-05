@@ -231,3 +231,10 @@ def get_assessment(app_id: int, db: Session = Depends(get_db),
     if payload is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No assessment yet")
     return payload
+
+
+@router.post("/{app_id}/reassess")
+def reassess_alias(app_id: int, db: Session = Depends(get_db),
+                   user: m.User = Depends(current_user)):
+    """Alias of /applications/{id}/assess (frontend path)."""
+    return assess(app_id, db, user)
