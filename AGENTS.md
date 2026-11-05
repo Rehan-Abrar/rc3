@@ -1,4 +1,4 @@
-> **Read HACKATHON_MODE.md before starting any task. Its execution-speed rules apply alongside the team communication and ownership rules below.**
+> **Read HACKATHON_MODE.md and COMPETITION_RULES.md before starting any task. Their execution-speed rules and official schedule/judging rules apply alongside the team communication and ownership rules below.**
 
 # Team rules for every agent
 
