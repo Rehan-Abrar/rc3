@@ -93,6 +93,21 @@ def section(title):
     print("\n" + title)
 
 
+def login_demo(email: str, password: str):
+    """Log in as a seeded demo user (used for endpoints that need real data)."""
+    import urllib.error
+    import urllib.request
+
+    payload = json.dumps({"email": email, "password": password}).encode()
+    req = urllib.request.Request(BASE + "/auth/login", data=payload,
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError:
+        return {}
+
+
 def main():
     section("health")
     health = check("GET /health", "GET", "/health")
@@ -253,6 +268,51 @@ def main():
         print(("  PASS  " if fair_ok else "  FAIL  ")
               + f"fairness audit is self-describing and stable  [baseline {audit.get('baseline')}]")
     check("audit merge alias requires ids", "POST", "/audit/merge", 422, token=rt, body={})
+
+    section("scoring configuration and what-if")
+    demo = login_demo("recruiter@hire.dev", "demo1234")
+    dt = (demo or {}).get("token")
+    jobs = check("GET /jobs (for a job id)", "GET", "/jobs", 200, token=dt) or []
+    demo_job = next((j for j in jobs if j.get("title") == "Backend Developer"),
+                    jobs[0] if jobs else None)
+    if demo_job:
+        jid = demo_job["id"]
+        cfg = check("GET /jobs/{id}/weights", "GET", f"/jobs/{jid}/weights", 200, token=dt) or {}
+        weights = cfg.get("configured") or {}
+        complete = (sorted(weights) == ["experience", "projects", "qualifications", "skills"]
+                    and abs(sum(weights.values()) - 100) < 0.001)
+        results.append(("weights config is complete and sums to 100", complete, str(weights)))
+        print(("  PASS  " if complete else "  FAIL  ")
+              + f"weights config is complete and sums to 100  [{weights}]")
+
+        body = {"skills": 65, "experience": 15, "projects": 15, "qualifications": 5}
+        sim = check("POST /jobs/{id}/what-if", "POST", f"/jobs/{jid}/what-if", 200,
+                    token=dt, body=body) or {}
+        rows = sim.get("rows") or []
+        ranked = bool(rows) and all(r.get("simulated_rank") for r in rows)
+        results.append(("what-if returns a full simulated ranking", ranked, f"{len(rows)} rows"))
+        print(("  PASS  " if ranked else "  FAIL  ")
+              + f"what-if returns a full simulated ranking  [{len(rows)} rows]")
+
+        explained = all(
+            abs(sum((r.get("contributions") or {}).values())
+                - ((r.get("simulated_score") or 0) - (r.get("current_score") or 0))) < 0.15
+            for r in rows if r.get("simulated_score") is not None)
+        results.append(("what-if contributions explain each score delta", explained, ""))
+        print(("  PASS  " if explained else "  FAIL  ")
+              + "what-if contributions explain each score delta")
+
+        for label, bad in (("total 95", {"skills": 50, "experience": 25, "projects": 15,
+                                          "qualifications": 5}),
+                           ("negative", {"skills": -1, "experience": 46, "projects": 30,
+                                         "qualifications": 25})):
+            check(f"PUT weights rejects {label}", "PUT", f"/jobs/{jid}/weights", 422,
+                  token=dt, body=bad)
+            check(f"what-if rejects {label}", "POST", f"/jobs/{jid}/what-if", 422,
+                  token=dt, body=bad)
+        check("what-if/apply needs confirm", "POST", f"/jobs/{jid}/what-if/apply", 400,
+              token=dt, body=body)
+        check("weights hidden from candidates", "GET", f"/jobs/{jid}/weights", 403, token=ct)
 
     print("\n" + "=" * 68)
     passed = sum(1 for _l, ok, _n in results if ok)

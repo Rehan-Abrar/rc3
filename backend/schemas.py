@@ -2,7 +2,7 @@
 contracts/types.ts exactly (verified by tests/test_contract_shape.py)."""
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 Role = Literal["recruiter", "candidate"]
 Stage = Literal["submitted", "parsed", "assessed", "recruiter_review", "shortlisted",
@@ -30,6 +30,36 @@ class RequirementIn(BaseModel):
     evidence_hint: str | None = None
 
 
+class WeightsIn(BaseModel):
+    """Assessment weights in percent. All four must be supplied and sum to 100."""
+    skills: float = Field(ge=0, le=100)
+    experience: float = Field(ge=0, le=100)
+    projects: float = Field(ge=0, le=100)
+    qualifications: float = Field(ge=0, le=100)
+
+    def dimensions(self) -> dict:
+        """Just the four weights, ignoring apply-time extras like reason or recalculate."""
+        return {d: getattr(self, d) for d in ("skills", "experience", "projects", "qualifications")}
+
+    @model_validator(mode="after")
+    def check_total(self):
+        # One authority: the same function the scoring engine uses, so the API cannot accept a
+        # configuration the engine would reject (or vice versa).
+        from services import scoring as sc
+        sc.validate(self.dimensions())
+        return self
+
+
+class WeightsApplyIn(WeightsIn):
+    reason: str | None = Field(default=None, max_length=500)
+    recalculate: bool = True
+
+
+class WeightsSaveIn(WeightsApplyIn):
+    """Saving is a deliberate act: an explicit confirm flag is required."""
+    confirm: bool = False
+
+
 class JobIn(BaseModel):
     title: str = Field(min_length=2, max_length=160)
     department: str = Field(default="", max_length=120)
@@ -40,6 +70,7 @@ class JobIn(BaseModel):
     description: str = Field(default="", max_length=8000)
     status: Literal["open", "closed"] = "open"
     requirements: list[RequirementIn] = Field(default_factory=list)
+    weights: WeightsIn | None = None
 
     @field_validator("salary_max")
     @classmethod
@@ -60,6 +91,7 @@ class JobPatch(BaseModel):
     description: str | None = Field(default=None, max_length=8000)
     status: Literal["open", "closed"] | None = None
     requirements: list[RequirementIn] | None = None
+    weights: WeightsIn | None = None
 
 
 class ExtractRequirementsIn(BaseModel):

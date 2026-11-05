@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+import re
+
 import models as m
 import schemas
 import serializers as S
@@ -313,19 +315,32 @@ def fairness_audit(job_id: int | None = None, db: Session = Depends(get_db),
                          "score": matching.STATUS_SCORE.get(status, 0.0), "similarity": sim})
         return round(matching.skills_score(rows), 2)
 
-    def _norm(text: str) -> str:
-        return " ".join(text.split())
+    def _norm(text: str, tokens: list[str] = ()) -> str:
+        """Comparable form of a scoring view: mask filler collapsed, identity lines dropped.
+
+        Masking replaces a name with a run of X as long as the name, so two names leave
+        different filler - the filler carries no signal. Anything that still contains the
+        candidate's own name or email is identity-only residue; it is removed on both sides so
+        the comparison isolates the rest of the résumé.
+        """
+        collapsed = re.sub(r"X{2,}", "#", text)
+        kept = [ln for ln in collapsed.splitlines()
+                if not any(t and t in ln.lower() for t in tokens)]
+        return " ".join(" ".join(kept).split())
 
     # The number the recruiter actually sees for this candidate, so the audit is comparable
     # to the ranked list instead of being an abstract 100/100 self-similarity.
     baseline = round(assessment.skills_score, 2)
-    base_view = _norm(fairness.scoring_view(resume.raw_text or ""))
+    # Identity tokens are taken from the real résumé and stripped from every variant, so a
+    # changed name cannot leave its own copies behind in a URL and make the texts differ.
+    tokens = fairness.identity_tokens(resume.raw_text or "")
+    base_view = _norm(fairness.scoring_view(resume.raw_text or "", tokens), tokens)
     texts = fairness.audit_texts(resume.raw_text or "")
     checks, deltas = [], []
     for key, value in texts.items():
         if key == "baseline":
             continue
-        view = _norm(fairness.scoring_view(value))
+        view = _norm(fairness.scoring_view(value, tokens), tokens)
         identical = view == base_view
         # Identical scoring text means every scorer - embedding gate or LLM - sees the same
         # input, so the score provably cannot move. Only re-score when masking fell short.
@@ -334,7 +349,7 @@ def fairness_audit(job_id: int | None = None, db: Session = Depends(get_db),
         checks.append({"attribute": key, "baseline": baseline, "perturbed": perturbed,
                        "identical": identical})
     worst = max(deltas) if deltas else 0.0
-    removed = fairness.scoring_view(texts["baseline"])
+    removed = fairness.scoring_view(texts["baseline"], tokens)
     protected_removed = ("@example.com" not in removed) and ("+92" not in removed)
     passed = protected_removed and worst < 0.05
     return {"passed": bool(passed), "applicable": True, "baseline": baseline,

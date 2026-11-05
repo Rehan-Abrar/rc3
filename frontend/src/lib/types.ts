@@ -4,7 +4,7 @@
  */
 export * from '../../../contracts/types'
 
-import type { JobSummary, Score, SkillRow, Stage } from '../../../contracts/types'
+import type { JobSummary, Score, SkillRow, Stage, Weights } from '../../../contracts/types'
 
 /** Request body for create/edit — the API returns a JobDetail. */
 export interface JobInput {
@@ -23,6 +23,8 @@ export interface JobInput {
     min_years?: number | null
     evidence_hint?: string | null
   }>
+  /** Optional: omit to keep the job's current weights (or the 50/25/15/10 default). */
+  weights?: Weights
 }
 
 /** GET /talent/compare?ids=1,2 — job plus one aligned row per candidate. */

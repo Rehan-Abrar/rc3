@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 import models as m
 import serializers as S
-from services import embeddings, extract, fairness, llm, matching, pdf
+from services import embeddings, extract, fairness, llm, matching, pdf, scoring
 
 
 def ensure_chunks(db: Session, resume: m.Resume) -> list[m.ResumeChunk]:
@@ -93,7 +93,11 @@ def run_assessment(db: Session, app: m.Application, actor_id: int) -> m.Assessme
 
     rows = matching.build_rows(reqs, verdicts, similarities)
     project_chunks = [{"text": c["text"]} for c in chunk_rows if c["section"] == "projects"]
-    scores = matching.combine(rows, profile, job.description or "", project_chunks, reqs)
+    # The job's own weights decide the total. Stamping the version on the row is what stops a
+    # cached score being served after the recruiter changes the configuration.
+    weights = scoring.from_job(job)
+    scores = matching.combine(rows, profile, job.description or "", project_chunks, reqs,
+                              weights=weights)
     explanation = matching.explain(rows, scores, summary)
 
     old = db.scalar(select(m.Assessment).where(m.Assessment.application_id == app.id))
@@ -110,10 +114,17 @@ def run_assessment(db: Session, app: m.Application, actor_id: int) -> m.Assessme
         embedding_mode=embeddings.mode(),
         model=llm.model_for("quality") if ai_mode == "groq" else "none",
         summary=summary[:2000], explanation=explanation[:4000],
+        weights_json=json.dumps(weights),
+        weights_version=int(getattr(job, "scoring_version", 1) or 1),
         payload_json=json.dumps({"gaps": scores["gaps"],
                                  "learning_suggestions": scores["learning_suggestions"],
                                  "not_measured": scores["not_measured"],
-                                 "effective_weights": scores["effective_weights"]}))
+                                 "effective_weights": scores["effective_weights"],
+                                 "configured_weights": weights,
+                                 "dims": scores["dims"],
+                                 "weights_version": int(getattr(job, "scoring_version", 1) or 1),
+                                 **({"weights_note": scores["weights_note"]}
+                                    if scores.get("weights_exhausted") else {})}))
     db.add(a)
     db.flush()
     for r in rows:
@@ -134,4 +145,9 @@ def assessment_payload(db: Session, app: m.Application) -> dict | None:
     a = db.scalar(select(m.Assessment).where(m.Assessment.application_id == app.id))
     if not a:
         return None
+    # A score cached under older weights is re-derived from its stored dimension scores before
+    # it is served. If the row is too old to re-derive, the payload says so rather than lying.
+    report = scoring.ensure_current(db, a, db.get(m.Job, app.job_id))
+    if report.get("updated"):
+        db.commit()
     return S.assessment(a, a.ai_mode, embeddings.mode())

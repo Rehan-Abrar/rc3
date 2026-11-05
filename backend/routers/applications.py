@@ -9,6 +9,7 @@ from models import utcnow
 from db import get_db
 from security import current_user, require_candidate, require_recruiter
 from services import assess as assess_svc
+from services import scoring
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -167,7 +168,11 @@ def applicants(job_id: int, db: Session = Depends(get_db),
         .outerjoin(m.Assessment, m.Assessment.application_id == m.Application.id)
         .where(m.Application.job_id == job_id)).all()
     out = []
+    rescored = False
     for a, cand, ass in rows:
+        if ass is not None:
+            report = scoring.ensure_current(db, ass, job)
+            rescored = rescored or bool(report.get("updated"))
         score = S.score_block(ass, "", "dense")
         if a.override_score is not None and score:
             score = {**score, "overall": a.override_score}
@@ -187,6 +192,8 @@ def applicants(job_id: int, db: Session = Depends(get_db),
             "has_notes": bool(db.scalar(select(m.Note.id).where(
                 m.Note.application_id == a.id).limit(1))),
         })
+    if rescored:
+        db.commit()
     out.sort(key=lambda x: (x["score"]["overall"] if x["score"] else -1), reverse=True)
     return out
 

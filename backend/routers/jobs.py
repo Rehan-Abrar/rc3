@@ -9,7 +9,7 @@ import schemas
 import serializers as S
 from db import get_db
 from security import current_user, require_recruiter
-from services import llm, skills
+from services import llm, scoring, skills
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -76,6 +76,10 @@ def list_jobs(status_filter: str | None = Query(default=None, alias="status"),
         stmt = stmt.where(m.Job.title.ilike(like) | m.Job.description.ilike(like))
     if user.role == "candidate":
         stmt = stmt.where(m.Job.status == "open")
+    else:
+        # A recruiter's job list is their own: every job route is ownership-checked, so listing
+        # someone else's job only offers a link that 403s.
+        stmt = stmt.where(m.Job.recruiter_id == user.id)
     return [S.job_summary(db, j) for j in db.scalars(stmt).all()]
 
 
@@ -86,6 +90,9 @@ def create_job(body: schemas.JobIn, db: Session = Depends(get_db),
                 location=body.location, employment_type=body.employment_type,
                 salary_min=body.salary_min, salary_max=body.salary_max,
                 description=body.description, status=body.status)
+    if body.weights is not None:  # omitted -> the 50/25/15/10 default stands
+        for dim, value in scoring.validate(body.weights.dimensions()).items():
+            setattr(job, f"weight_{dim}", value)
     db.add(job)
     db.flush()
     _apply_requirements(db, job, body.requirements)
@@ -105,10 +112,22 @@ def update_job(job_id: int, body: schemas.JobPatch, db: Session = Depends(get_db
     job = _owned_job(db, job_id, recruiter)
     data = body.model_dump(exclude_unset=True)
     reqs = data.pop("requirements", None)
+    weights = data.pop("weights", None)
     for key, value in data.items():
         setattr(job, key, value)
     if reqs is not None:
         _apply_requirements(db, job, [schemas.RequirementIn(**r) for r in reqs])
+    if weights is not None:
+        # Editing a job keeps its weights unless the weights are part of the edit; a change
+        # here goes through the same validation and version bump as the weights endpoint.
+        clean = scoring.validate(schemas.WeightsIn(**weights).dimensions())
+        if any(abs(scoring.to_percent(scoring.from_job(job))[d] - clean[d]) > 0.001
+               for d in scoring.DIMENSIONS):
+            for dim, value in clean.items():
+                setattr(job, f"weight_{dim}", value)
+            job.scoring_version = int(getattr(job, "scoring_version", 1) or 1) + 1
+            db.flush()
+            scoring.recalculate_job(db, job, commit=False)
     db.commit()
     db.refresh(job)
     return S.job_detail(db, job)

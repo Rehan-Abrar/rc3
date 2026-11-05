@@ -9,6 +9,7 @@ import { PageHeader } from '../../components/layout/AppShell'
 import { useToast } from '../../components/ui/toast'
 import { STAGE_LABEL, cn, stageTone } from '../../lib/utils'
 import { ModeBadges, ScoreBreakdown, ScoreNumber, SkillMatrix, scoreBandLabel } from '../../components/ui/score'
+import { WhatIfPanel } from '../../components/scoring/WhatIfPanel'
 
 /** Assessment is loaded only when a row is expanded — the list API stays light. */
 function ApplicantAssessment({ applicationId }: { applicationId: number }) {
@@ -186,6 +187,16 @@ export function ApplicantsPage() {
             <Button size="sm" variant="secondary" onClick={() => setDupPair(duplicates.data![0])}>Review</Button>
           </div>
         </Card>
+      )}
+
+      {job.data && (
+        <div className="mb-4">
+          <WhatIfPanel
+            jobId={jobId}
+            savedWeights={job.data.weights ?? { skills: 50, experience: 25, projects: 15, qualifications: 10 }}
+            onSaved={() => { job.reload(); list.reload() }}
+          />
+        </div>
       )}
 
       <Dialog

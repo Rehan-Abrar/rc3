@@ -80,19 +80,33 @@ def _derived_tokens(text: str) -> list[str]:
 
 
 def _scrub(text: str, tokens: list[str], filler: str = "") -> str:
+    """Replace identity fragments. Short tokens must match whole words.
+
+    "Ali" inside "validation" is not the candidate: a bare substring scrub would corrupt real
+    content (and change the score for the wrong reason). Long fragments such as an email local
+    part are specific enough to match anywhere, which is what removes "github.com/rehanabrar36".
+    """
     for token in tokens:
-        text = re.sub(re.escape(token), lambda m, f=filler: f * len(m.group(0))
-                      if f else "", text, flags=re.IGNORECASE)
+        pattern = re.escape(token)
+        if len(token) < 6:
+            pattern = r"(?<![A-Za-z0-9])" + pattern + r"(?![A-Za-z0-9])"
+        text = re.sub(pattern, lambda m, f=filler: f * len(m.group(0)) if f else "",
+                      text, flags=re.IGNORECASE)
     return text
 
 
-def strip_protected(text: str) -> str:
+def identity_tokens(text: str) -> list[str]:
+    """Public alias: the name/email fragments that must never reach the scorer."""
+    return _derived_tokens(text)
+
+
+def strip_protected(text: str, extra_tokens: list[str] | None = None) -> str:
     """Remove personal/protected identifiers before any scoring or LLM call."""
     if not text:
         return ""
     # Header names first: "Ayesha Khan | Lahore" must lose the name but keep the location,
     # because location is not protected and the rest of the line may be a real detail.
-    tokens = _derived_tokens(text)
+    tokens = _merge_tokens(_derived_tokens(text), extra_tokens)
     lines = text.splitlines()
     for i, line in enumerate(lines[:3]):
         span = name_span(line)
@@ -142,12 +156,12 @@ def _mask_name_line(text: str) -> list[str]:
     return out
 
 
-def mask_same_length(text: str) -> str:
+def mask_same_length(text: str, extra_tokens: list[str] | None = None) -> str:
     """Mask protected identifiers with equal-length filler so char offsets stay valid."""
     if not text:
         return ""
     out = _mask_name_line(text)
-    tokens = _derived_tokens(text)
+    tokens = _merge_tokens(_derived_tokens(text), extra_tokens)
     for pat in (_EMAIL, _URL, _PHONE, _LABELLED, _INLINE):
         snapshot = "".join(out)
         for m in pat.finditer(snapshot):
@@ -155,6 +169,11 @@ def mask_same_length(text: str) -> str:
                 if out[i] not in "\n\r":
                     out[i] = "X"
     return "".join(out)
+
+
+def _merge_tokens(first: list[str], second: list[str] | None) -> list[str]:
+    merged = list(dict.fromkeys(list(first) + list(second or [])))
+    return sorted(merged, key=len, reverse=True)
 
 
 def audit_texts(base: str) -> dict[str, str]:
@@ -169,8 +188,8 @@ def audit_texts(base: str) -> dict[str, str]:
     }
 
 
-def scoring_view(text: str) -> str:
+def scoring_view(text: str, extra_tokens: list[str] | None = None) -> str:
     """The exact view scoring is allowed to see: no protected lines, no bare name line."""
-    out = strip_protected(text or "")
+    out = strip_protected(text or "", extra_tokens)
     lines = [ln for ln in out.splitlines() if not _NAME_LINE.match(ln)]
     return re.sub(r"[ \t]+", " ", "\n".join(lines)).strip()

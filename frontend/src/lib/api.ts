@@ -25,6 +25,9 @@ import type {
   Stage,
   TalentSearchResult,
   User,
+  Weights,
+  WeightsConfig,
+  WhatIfResult,
 } from './types'
 import {
   analytics,
@@ -193,6 +196,126 @@ export const auth = {
       }
     }
     setToken(null)
+  },
+}
+
+/* ------------------------- scoring configuration ------------------------- */
+
+/**
+ * Recruiter-configurable assessment weights. The server owns the maths: these calls only send a
+ * configuration and read back what the engine computed, so the UI can never invent a score.
+ */
+export const scoring = {
+  async config(jobId: number): Promise<WeightsConfig> {
+    if (!USE_FIXTURES) return request<WeightsConfig>(`/jobs/${jobId}/weights`)
+    await delay(140)
+    const job = jobDetail(jobId)
+    if (!job) fail(404, 'That job no longer exists.')
+    const configured = job!.weights ?? { skills: 50, experience: 25, projects: 15, qualifications: 10 }
+    return {
+      job_id: jobId,
+      configured,
+      default: { skills: 50, experience: 25, projects: 15, qualifications: 10 },
+      is_default: configured.skills === 50 && configured.experience === 25,
+      version: job!.weights_version ?? 1,
+      updated_at: job!.updated_at,
+      history: [],
+    }
+  },
+
+  async save(jobId: number, weights: Weights, reason?: string): Promise<WeightsConfig> {
+    if (!USE_FIXTURES) {
+      return request<WeightsConfig>(`/jobs/${jobId}/weights`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...weights, reason: reason ?? null }),
+      })
+    }
+    await delay(300)
+    const job = store.jobs.find((j) => j.id === jobId)
+    if (!job) fail(404, 'That job no longer exists.')
+    job!.weights = { ...weights }
+    return this.config(jobId)
+  },
+
+  async reset(jobId: number): Promise<WeightsConfig> {
+    if (!USE_FIXTURES) return request<WeightsConfig>(`/jobs/${jobId}/weights/reset`, { method: 'POST' })
+    await delay(220)
+    return this.save(jobId, { skills: 50, experience: 25, projects: 15, qualifications: 10 }, 'Reset to default')
+  },
+
+  /** Preview only: the server ranks real stored dimension scores and writes nothing. */
+  async whatIf(jobId: number, weights: Weights): Promise<WhatIfResult> {
+    if (!USE_FIXTURES) {
+      return request<WhatIfResult>(`/jobs/${jobId}/what-if`, {
+        method: 'POST',
+        body: JSON.stringify(weights),
+      })
+    }
+    await delay(260)
+    const job = jobDetail(jobId)
+    if (!job) fail(404, 'That job no longer exists.')
+    const rows = store.applications
+      .filter((a) => a.job_id === jobId)
+      .map((a) => {
+        const ass = ASSESSMENTS.find((x) => x.application_id === a.id)
+        if (!ass) return null
+        const measured = (['skills', 'experience', 'projects', 'qualifications'] as const)
+          .filter((d) => !(ass.not_measured ?? []).includes(d))
+        const total = measured.reduce((sum, d) => sum + weights[d], 0) || 1
+        const effective: Record<string, number> = { skills: 0, experience: 0, projects: 0, qualifications: 0 }
+        let overall = 0
+        for (const d of measured) {
+          effective[d] = weights[d] / total
+          overall += effective[d] * ass[d]
+        }
+        return {
+          application_id: a.id,
+          candidate: { id: a.candidate_id, name: userFromToken(getToken())?.full_name ?? 'Candidate' },
+          stage: a.stage,
+          current_score: ass.overall,
+          simulated_score: Math.round(overall * 100) / 100,
+          ranking_score: Math.round(overall * 100) / 100,
+          current_rank: 1,
+          simulated_rank: 1,
+          movement: 0,
+          contributions: { skills: 0, experience: 0, projects: 0, qualifications: 0 },
+          effective_weights: effective,
+          configured_weights: weights,
+          not_measured: ass.not_measured ?? [],
+          override_score: a.override_score,
+          override_reason: a.override_reason,
+          confidence: ass.confidence,
+          insufficient_evidence: ass.insufficient_evidence,
+          warnings: [],
+        }
+      })
+      .filter((r): r is NonNullable<typeof r> => Boolean(r))
+      .sort((x, y) => (y.simulated_score ?? 0) - (x.simulated_score ?? 0))
+      .map((r, i) => ({ ...r, current_rank: i + 1, simulated_rank: i + 1 }))
+    return {
+      job_id: jobId,
+      job_title: job!.title,
+      weights,
+      current_weights: job!.weights ?? { skills: 50, experience: 25, projects: 15, qualifications: 10 },
+      effective_weights: {},
+      is_default: weights.skills === 50 && weights.experience === 25,
+      version: job!.weights_version ?? 1,
+      rows,
+      moved_up: 0,
+      moved_down: 0,
+      incomplete: 0,
+      note: 'Fixture preview: the live simulator runs against the API.',
+    }
+  },
+
+  async apply(jobId: number, weights: Weights, reason?: string): Promise<WeightsConfig> {
+    if (!USE_FIXTURES) {
+      return request<WeightsConfig>(`/jobs/${jobId}/what-if/apply`, {
+        method: 'POST',
+        body: JSON.stringify({ ...weights, reason: reason ?? null, confirm: true }),
+      })
+    }
+    return this.save(jobId, weights, reason)
   },
 }
 

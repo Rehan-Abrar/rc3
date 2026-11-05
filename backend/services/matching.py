@@ -7,7 +7,7 @@ against the (offset-preserving masked) resume text. Scoring itself is determinis
 import json
 import re
 
-from services import embeddings, fairness, llm, skills
+from services import embeddings, fairness, llm, scoring, skills
 
 WEIGHTS = {"skills": 0.50, "experience": 0.25, "projects": 0.15, "qualifications": 0.10}
 IMPORTANCE_FACTOR = {"required": 1.0, "preferred": 0.4}
@@ -257,26 +257,31 @@ def verdict_ok(ratio: float) -> bool:
 
 
 def combine(rows: list[dict], profile: dict, job_description: str,
-            project_chunks: list[dict], reqs: list[dict]) -> dict:
-    """Deterministic arithmetic over adjudicated evidence. No LLM here."""
+            project_chunks: list[dict], reqs: list[dict],
+            weights: dict | None = None) -> dict:
+    """Deterministic arithmetic over adjudicated evidence. No LLM here.
+
+    `weights` are the job's configured percentages (default 50/25/15/10). The weighted total
+    itself is computed by services.scoring so the live pipeline, the re-score after a weights
+    change and the What-If simulator can never disagree about what a score means.
+    """
     dims = {
         "skills": _skills_score(rows),
         "experience": _experience_score(profile, reqs),
         "projects": _projects_score(profile, job_description, project_chunks),
         "qualifications": _qualifications_score(rows),
     }
-    present = {k: v for k, v in dims.items() if v is not None}
-    not_measured = [k for k, v in dims.items() if v is None]
-    total_w = sum(WEIGHTS[k] for k in present) or 1.0
-    overall = sum(WEIGHTS[k] * v for k, v in present.items()) / total_w
-    # Weights are renormalised over the dimensions we could actually measure. Publish both
-    # facts so the UI never shows "0" for a dimension that simply was not scored, and so the
-    # breakdown it displays multiplies out to the same overall we report.
-    effective = {k: (round(WEIGHTS[k] / total_w, 4) if k in present else 0.0) for k in WEIGHTS}
+    weighted = scoring.combine_dimensions(dims, weights or scoring.DEFAULT_WEIGHTS)
+    overall = weighted["overall"]
+    not_measured = weighted["not_measured"]
+    effective = weighted["effective_weights"]
     confidence, insufficient = _confidence(rows)
     gaps = [r["label"] for r in rows if r["status"] in ("not_evidenced", "confirmed_absent")]
     return {
-        "overall": _quantization(overall),
+        # One rounding policy for the total: services.scoring already rounds to 2dp, and the
+        # re-score path uses the same function, so a weights change cannot move a score by a
+        # rounding step that has nothing to do with the weights.
+        "overall": round(max(0.0, min(100.0, overall)), 2),
         "skills": _quantization(dims["skills"]),
         "experience": _quantization(dims["experience"] or 0.0),
         "projects": _quantization(dims["projects"] or 0.0),
@@ -286,6 +291,12 @@ def combine(rows: list[dict], profile: dict, job_description: str,
         "gaps": gaps,
         "not_measured": not_measured,
         "effective_weights": effective,
+        "configured_weights": weighted["configured_weights"],
+        # Full-precision dimension scores, so a later re-score under new weights reproduces the
+        # same numbers instead of drifting through the rounded values shown in the UI.
+        "dims": {k: (None if v is None else float(v)) for k, v in dims.items()},
+        "weights_exhausted": weighted["exhausted"],
+        "weights_note": weighted["note"],
         "learning_suggestions": [f"Add concrete project evidence for {g}." for g in gaps[:5]],
     }
 

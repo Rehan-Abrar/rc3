@@ -7,6 +7,8 @@ import { Badge, Button, Card, CardHeader, ErrorState, Field, Input, Select, Skel
 import { PageHeader } from '../../components/layout/AppShell'
 import { useToast } from '../../components/ui/toast'
 import { useAsync } from '../../lib/useAsync'
+import { DEFAULT_WEIGHTS, WeightsEditor, sameWeights, totalOf } from '../../components/scoring/WeightsEditor'
+import type { Weights } from '../../lib/types'
 
 type Req = JobInput['requirements'][number]
 
@@ -21,6 +23,7 @@ const blank: JobInput = {
   salary_max: null,
   description: '',
   requirements: [],
+  weights: { ...DEFAULT_WEIGHTS },
 }
 
 const TYPES = ['Full-time', 'Part-time', 'Contract', 'Internship']
@@ -37,6 +40,7 @@ export function JobEditorPage() {
   const [saving, setSaving] = useState(false)
   const [extracting, setExtracting] = useState(false)
   const [suggested, setSuggested] = useState<Req[] | null>(null)
+  const [weights, setWeights] = useState<Weights>({ ...DEFAULT_WEIGHTS })
 
   useEffect(() => {
     const job = existing.data
@@ -57,7 +61,9 @@ export function JobEditorPage() {
         min_years: r.min_years,
         evidence_hint: r.evidence_hint,
       })),
+      weights: job.weights ?? { ...DEFAULT_WEIGHTS },
     })
+    setWeights(job.weights ?? { ...DEFAULT_WEIGHTS })
   }, [existing.data])
 
   const set = <K extends keyof JobInput>(key: K, value: JobInput[K]) => setForm((f) => ({ ...f, [key]: value }))
@@ -74,6 +80,7 @@ export function JobEditorPage() {
     if (form.requirements.filter((r) => r.label.trim()).length === 0) next.requirements = 'Add at least one skill or qualification.'
     if (countRequired === 0) next.requirements = 'Mark at least one requirement as required.'
     if (form.salary_min != null && form.salary_max != null && form.salary_min > form.salary_max) next.salary = 'Minimum salary cannot exceed maximum.'
+    if (Math.abs(totalOf(weights) - 100) > 0.001) next.weights = 'Assessment weights must sum to 100%.'
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -85,6 +92,7 @@ export function JobEditorPage() {
       const payload: JobInput = {
         ...form,
         title: form.title.trim(),
+        weights,
         requirements: form.requirements
           .filter((r) => r.label.trim())
           .map((r) => ({ ...r, label: r.label.trim(), weight: r.importance === 'required' ? r.weight || 1 : r.weight || 0.5 })),
@@ -326,6 +334,22 @@ export function JobEditorPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </Card>
+
+            <Card>
+              <CardHeader
+                title="Assessment weights"
+                subtitle="How the score is split across the four dimensions. Applies to every candidate on this job."
+              />
+              <div className="p-4">
+                {errors.weights && <p className="mb-2 text-xs text-bad" role="alert">{errors.weights}</p>}
+                <WeightsEditor value={weights} onChange={setWeights} disabled={saving} idPrefix={`job-${id ?? 'new'}`} />
+                {editing && existing.data?.weights && !sameWeights(weights, existing.data.weights) && (
+                  <p className="mt-2 text-[11px] text-warn">
+                    Saving will recalculate scores from the stored evidence and record the change in the audit history.
+                  </p>
+                )}
               </div>
             </Card>
 
