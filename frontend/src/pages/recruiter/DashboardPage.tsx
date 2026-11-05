@@ -38,7 +38,7 @@ export function RecruiterDashboardPage() {
       {stats.error ? (
         <Card><ErrorState message={stats.error} onRetry={stats.reload} /></Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {stats.loading &&
             Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-[86px]" />)}
           {s && (
@@ -53,7 +53,7 @@ export function RecruiterDashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_1fr]">
         <Card>
           <CardHeader
             title="Ranked applicants"
