@@ -18,7 +18,7 @@
 Every required library is already installed on this laptop and verified: `fastapi 0.141`, `uvicorn`, `SQLAlchemy 2.0`, `pymupdf 1.28`, `scikit-learn 1.8`, `numpy 2.4`, `openai 3.8`, `bcrypt 5.0`, `PyJWT 2.8`. No install risk, no ORM/DB server to provision, SQLite is a real persistent store, and PyMuPDF gives genuine PDF text extraction with character offsets. Node 24 + npm 11 are present for Vite. Rejected: Next.js (needs a Node backend for AI keys → keys client-side risk), Django (heavier, slower to a working demo than already-installed FastAPI), Postgres (no server available, no benefit at this scale).
 
 **ADR-002 — AI provider: Groq (OpenAI-compatible) called server-side only.**
-`backend/.env` holds the keys; `.env` is gitignored and keys never reach the browser. Text extraction, requirement extraction, question generation and explanation prose are real LLM calls (`llama-3.3-70b-versatile`, JSON-mode). Every AI response is validated against a schema and rejected on failure. No hardcoded AI output anywhere; a visible `ai_mode` badge shows `groq` or `degraded` so nothing is faked.
+`backend/.env` holds the keys; `.env` is gitignored and keys never reach the browser. Text extraction, requirement extraction, question generation and explanation prose are real LLM calls (strict json_schema, `openai/gpt-oss-120b` quality / `openai/gpt-oss-20b` fast). Every AI response is validated against a schema and rejected on failure. No hardcoded AI output anywhere; a visible `ai_mode` badge shows `groq` or `degraded` so nothing is faked.
 
 **ADR-003 — Semantic layer: dense embeddings when available, deterministic fallback otherwise.**
 `backend/services/embeddings.py` exposes one interface with two providers: (a) **model2vec** static embeddings (numpy-only, no torch, works on Python 3.14) if importable, (b) **hybrid lexical vectorizer** (scikit-learn TF-IDF word 1-2 gram + char 3-5 gram cosine) otherwise. Provider is recorded per assessment in `ai_mode` and shown in the UI. Both are real algorithms computed from resume text — no canned results. Dense vectors need no external API, so judging works offline.
@@ -209,7 +209,7 @@ bcrypt hashes - JWT with expiry - role guard on every recruiter and mutation rou
 
 | Phase | Clock | Timebox | Deliverable | Exit criteria |
 |---|---|---|---|---|
-| 0 | 09:30-09:45 | 15m | Plan, contracts, fixtures, `[CONTRACT]` posted | Agent A can start from fixtures |
+| 0 | 09:30-09:45 | 15m (actual: 09:35-10:05) | Plan, contracts, fixtures, `[CONTRACT]` posted | Agent A can start from fixtures |
 | 1 | 09:45-10:45 | 60m | Skeleton, auth, jobs CRUD, PDF upload+parse, schema+seed | login/job/upload work; `/health` green |
 | 2 | 10:45-11:45 | 60m | Extraction, embeddings, assessment, ranking | 3 candidates scored with quotes; R12/R13/R15 pass |
 | 3 | 11:45-12:00 | 15m | Recruiter pipeline + evidence UI on real API | demo steps 1-5 green |

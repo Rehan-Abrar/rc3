@@ -94,11 +94,17 @@ def application_detail(app_id: int, db: Session = Depends(get_db),
     if user.role == "candidate":
         if a.candidate_id != user.id:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your application")
+        events = db.scalars(select(m.StatusEvent).where(m.StatusEvent.application_id == a.id)
+                            .order_by(m.StatusEvent.id)).all()
         item = S.application(a)
         item.update({"job": S.job_summary(db, job),
                      "assessment": assess_svc.assessment_payload(db, a),
-                     "questions": [], "interviews": [], "notes": [], "events": [],
-                     "resume": None, "candidate": S.user(user)})
+                     "questions": [], "interviews": [], "notes": [],
+                     "events": [S.event(e, (db.get(m.User, e.actor_id).full_name
+                                            if db.get(m.User, e.actor_id) else "system"))
+                                for e in events],
+                     "resume": S.resume(db.get(m.Resume, a.resume_id)),
+                     "candidate": S.user(user)})
         return item
     if job.recruiter_id != user.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your vacancy")
