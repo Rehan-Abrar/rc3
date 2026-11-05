@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 import models as m
+from services import scoring
 
 
 def iso(dt: datetime | None) -> str | None:
@@ -40,6 +41,11 @@ def job_summary(db: Session, j: m.Job) -> dict:
     return {"id": j.id, "title": j.title, "department": j.department, "location": j.location,
             "employment_type": j.employment_type, "salary_min": j.salary_min,
             "salary_max": j.salary_max, "status": j.status,
+            # Recruiter-configurable weights travel with every job payload, so existing UI keeps
+            # working and a job can never be shown without the configuration that scored it.
+            "weights": scoring.to_percent(scoring.from_job(j)),
+            "weights_version": int(getattr(j, "scoring_version", 1) or 1),
+            "default_weights": dict(scoring.DEFAULT_WEIGHTS),
             "created_at": iso(j.created_at), "updated_at": iso(j.updated_at),
             "applicant_count": apps, "shortlisted_count": short, "interview_count": inter}
 
@@ -93,7 +99,19 @@ def score_block(a: m.Assessment | None, ai_mode: str, emb_mode: str) -> dict | N
             "model": a.model,
             # A dimension listed here was not scored, so its 0.0 is "not applicable", not a fail.
             "not_measured": payload.get("not_measured", []),
-            "effective_weights": payload.get("effective_weights", {})}
+            "effective_weights": payload.get("effective_weights", {}),
+            # Transparency: the configuration the job set, and (rarely) a note when all weight
+            # sat on dimensions the role does not measure.
+            "configured_weights": payload.get("configured_weights") or _weights_json(a),
+            "weights_version": payload.get("weights_version"),
+            "weights_note": payload.get("weights_note", "")}
+
+
+def _weights_json(a: m.Assessment) -> dict:
+    try:
+        return json.loads(getattr(a, "weights_json", "") or "{}")
+    except json.JSONDecodeError:
+        return {}
 
 
 def skill_row(s: m.AssessmentSkill) -> dict:

@@ -32,6 +32,13 @@ class Job(Base):
     salary_max: Mapped[float | None] = mapped_column(Float, nullable=True)
     description: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(20), default="open", index=True)
+    # Recruiter-configurable assessment weights, in percent. Default 50/25/15/10 keeps every
+    # existing score comparable; scoring_version lets caches know when they are out of date.
+    weight_skills: Mapped[float] = mapped_column(Float, default=50.0)
+    weight_experience: Mapped[float] = mapped_column(Float, default=25.0)
+    weight_projects: Mapped[float] = mapped_column(Float, default=15.0)
+    weight_qualifications: Mapped[float] = mapped_column(Float, default=10.0)
+    scoring_version: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
@@ -112,10 +119,28 @@ class Assessment(Base):
     summary: Mapped[str] = mapped_column(Text, default="")
     explanation: Mapped[str] = mapped_column(Text, default="")
     payload_json: Mapped[str] = mapped_column(Text, default="{}")  # skills_detail, gaps, learning
+    # Which weights produced `overall`, so a cached score can never be served under a newer
+    # configuration without being re-derived from the stored dimension scores.
+    weights_json: Mapped[str] = mapped_column(Text, default="{}")
+    weights_version: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     skills_detail: Mapped[list["AssessmentSkill"]] = relationship(
         back_populates="assessment", cascade="all, delete-orphan")
+
+
+class ScoringConfig(Base):
+    """Audit trail for weight changes: who changed what, when, and why."""
+    __tablename__ = "scoring_configs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id"), index=True)
+    recruiter_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    previous_json: Mapped[str] = mapped_column(Text, default="{}")
+    new_json: Mapped[str] = mapped_column(Text, default="{}")
+    reason: Mapped[str] = mapped_column(Text, default="")
+    assessments_updated: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class AssessmentSkill(Base):

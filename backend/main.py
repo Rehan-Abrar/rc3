@@ -6,8 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from config import CORS_ORIGINS, DATABASE_URL
-from db import Base, engine
-from routers import (analytics, applications, auth, interviews, jobs, questions, resumes, talent)
+from db import Base, engine, ensure_columns
+from routers import (analytics, applications, auth, interviews, jobs, questions,
+                      resumes, scoring, talent)
 from services import embeddings, llm
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -20,10 +21,11 @@ app.add_middleware(
 )
 
 Base.metadata.create_all(bind=engine)
+ensure_columns()
 
 API = "/api"
 for r in (auth.router, jobs.router, resumes.router, applications.router,
-          questions.router, interviews.router, analytics.router, talent.router):
+          questions.router, interviews.router, analytics.router, scoring.router, talent.router):
     app.include_router(r, prefix=API)
 
 

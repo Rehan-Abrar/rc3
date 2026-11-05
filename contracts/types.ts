@@ -22,11 +22,70 @@ export interface Requirement {
   importance: Importance; weight: number; min_years: number | null; evidence_hint: string | null;
 }
 
+/** Assessment weights in percent. Always four dimensions summing to 100. */
+export interface Weights {
+  skills: number; experience: number; projects: number; qualifications: number;
+}
+export type WeightKey = keyof Weights;
+
+export interface WeightsConfig {
+  job_id: number;
+  configured: Weights;
+  default: Weights;
+  is_default: boolean;
+  version: number;
+  updated_at: string | null;
+  history: WeightsHistoryEntry[];
+}
+export interface WeightsHistoryEntry {
+  id: number; version: number; recruiter_id: number; recruiter_name: string;
+  previous: Weights; new: Weights; reason: string;
+  assessments_updated: number; created_at: string | null;
+}
+
+export interface WhatIfContributions { skills: number; experience: number; projects: number; qualifications: number }
+
+export interface WhatIfRow {
+  application_id: number;
+  candidate: { id: number; name: string } | null;
+  stage: Stage | null;
+  current_score: number | null;
+  simulated_score: number | null;
+  /** Score the simulated ranking was built from: the override when one exists, else the simulation. */
+  ranking_score: number | null;
+  current_rank: number | null;
+  simulated_rank: number | null;
+  /** Positive = moved up the list. */
+  movement: number | null;
+  contributions: WhatIfContributions;
+  effective_weights: Weights | Record<string, number>;
+  configured_weights: Weights;
+  not_measured: string[];
+  override_score: number | null;
+  override_reason: string | null;
+  confidence: Confidence | null;
+  insufficient_evidence: boolean | null;
+  warnings: string[];
+}
+
+export interface WhatIfResult {
+  job_id: number; job_title: string;
+  weights: Weights;
+  current_weights: Weights;
+  effective_weights: Record<string, number>;
+  is_default: boolean;
+  version: number;
+  rows: WhatIfRow[];
+  moved_up: number; moved_down: number; incomplete: number;
+  note: string;
+}
+
 export interface JobSummary {
   id: number; title: string; department: string; location: string; employment_type: string;
   salary_min: number | null; salary_max: number | null; status: JobStatus;
   created_at: string; updated_at: string;
   applicant_count: number; shortlisted_count: number; interview_count: number;
+  weights?: Weights; weights_version?: number; default_weights?: Weights;
 }
 export interface JobDetail extends JobSummary {
   description: string; recruiter_id: number; requirements: Requirement[];
@@ -57,6 +116,11 @@ export interface Score {
   not_measured?: string[];
   /** Weights actually used, renormalised over the measured dimensions. Sums to 1. */
   effective_weights?: Record<string, number>;
+  /** The job configuration that produced this overall. */
+  configured_weights?: Weights | Record<string, never>;
+  weights_version?: number | null;
+  /** Set only when every configured weight landed on a dimension the role does not measure. */
+  weights_note?: string;
 }
 export interface SkillRow {
   requirement_id: number; label: string; importance: Importance; weight: number;
