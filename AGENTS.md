@@ -119,3 +119,35 @@ Rules:
 
 - Board state lives in `.board/` (gitignored, per laptop — cursors are local, never committed).
 - If `tools/board` fails on a laptop (no `gh`, not logged in), that laptop is **not** ready. Fix auth (`gh auth login`, then `tools/board whoami`) before any code work.
+
+## 6. Problem-statement protocol (mandatory, once the statement arrives)
+
+**Agent B (Rehan) is lead architect and integration coordinator** for planning, regardless of which AI tool is running. Agent A owns `App.tsx` and UI routing; Agent B owns data/service contracts. Nothing in this repo's instruction files may be bypassed here — the board and human-intervention rules (§1–§3) stay in force.
+
+### 6a. Sequence
+
+1. Read `COMPETITION_RULES.md`, `AGENTS.md`, `HACKATHON_MODE.md` and the **entire** problem statement.
+2. Extract **all** mandatory requirements, acceptance criteria, constraints, test cases, deliverables and judging priorities. **Never invent a missing requirement.**
+3. Identify only **truly critical** decisions needing Rehan's judgment — mutually exclusive readings of a core requirement, externally constrained technology choices, or choices that substantially change scope/architecture. Ask them in **one consolidated message** with recommended options, then stop for those only. Never ask about routine technical or aesthetic choices. If none exist, proceed automatically.
+4. Publish three coordinated files (nothing before this):
+   - `MASTER_PLAN.md` — the single source of truth: objective, traceable requirement checklist, judging weights (functionality 40 / design 30 / creativity 20 / presentation 10), architecture + stack with rationale, frontend/backend contracts (types, API shapes, state interfaces, mock data, errors), file ownership, phased tasks with dependencies/priorities/acceptance tests/deliverables, critical path, parallel work, integration checkpoints, five-hour time budget, MVP cutoff, optional enhancements, fallbacks, demo and submission checklist.
+   - `AGENT_A_PLAN.md` — Ubaid's frontend/UX tasks: phase order, exact owned files, dependencies, acceptance criteria, needed contracts and mock data, responsive/a11y/creativity/polish priorities, handoff points.
+   - `AGENT_B_PLAN.md` — Rehan's logic/data/backend-if-needed/integration/testing tasks: phase order, owned files, dependencies, acceptance criteria, contract ownership, validation, test coverage, integration and submission readiness, handoff points.
+5. `MASTER_PLAN.md` governs; the agent plans must stay consistent with it and must not duplicate its prose.
+6. Minimize shared-file edits, merge conflicts and cross-agent waiting. Agent A owns `App.tsx` and UI routing by default; Agent B owns data/service contracts. Shared dependencies go through the designated owner.
+7. Commit and push the plan files promptly, then post one concise `[CONTRACT]` on board issue #1 mentioning `@UbaidUrRehmaanDar` and stating which contracts and tasks are ready.
+8. Agent A starts independent UI scaffolding and Agent B starts its own tasks as soon as the plan and contracts exist. **No repeated per-phase approvals.**
+9. Keep the plans updated when requirements or major contracts change; announce material changes on the board. Never overwrite human edits.
+10. At each integration checkpoint, verify **actual working functionality** against the requirement checklist. Fix blockers before optional polish.
+
+### 6b. Planning speed
+
+- Target initial plan publication in about **10 minutes**, not a long research phase. Documentation must not consume the development window.
+- Ask only blocking critical human decisions.
+- Prefer the simplest architecture that satisfies the problem; if a backend/database is unnecessary, do not create one.
+- No unnecessary dependencies, tools, frameworks or process overhead.
+- **Never claim tests passed without running them.**
+
+### 6c. Until the statement exists
+
+Do **not** create `MASTER_PLAN.md`, `AGENT_A_PLAN.md` or `AGENT_B_PLAN.md`, and do not scaffold or build the application.

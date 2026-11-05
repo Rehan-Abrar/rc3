@@ -7,6 +7,8 @@
 2. Read `AGENTS.md` for team ownership, GitHub board commands, and communication rules.
 3. Follow the official competition requirements and any explicit human instructions. If instructions conflict, official rules and explicit human directions take precedence; never interpret this file as permission to bypass them.
 
+**When the official problem statement arrives:** `AGENTS.md` §6 defines the mandatory planning protocol — Agent B (Rehan) is lead architect and integration coordinator, publishes `MASTER_PLAN.md` + `AGENT_A_PLAN.md` + `AGENT_B_PLAN.md` within about 10 minutes, and both agents then start in parallel. Until the statement arrives, create no plans and build nothing.
+
 ## Default operating mode
 - **Execute, don't narrate.** Do not produce lengthy internal plans, repeated status updates, or ask permission for routine, reversible development steps.
 - **Decide quickly.** If a choice is low-risk and reversible, choose the simplest viable option and proceed. State assumptions briefly only when relevant.
@@ -64,4 +66,4 @@ Default stack if permitted and appropriate: React + Vite + TypeScript + Tailwind
 6. Send only meaningful board updates.
 7. Return a concise outcome.
 
-**Before the official problem is released:** only prepare and test the environment and collaboration workflow; do not implement speculative competition features.
+**Before the official problem is released:** only prepare and test the environment and collaboration workflow; do not implement speculative competition features and do not write `MASTER_PLAN.md` / `AGENT_A_PLAN.md` / `AGENT_B_PLAN.md` yet (`AGENTS.md` §6c).
