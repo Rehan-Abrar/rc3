@@ -56,7 +56,7 @@ const AYESHA_ROWS: SkillRow[] = [
   row({ req: 3, label: 'PostgreSQL', importance: 'required', status: 'matched', weight: 1, score: 1, sim: 0.89, raw: RESUME_AYESHA, quote: 'Led the migration from MySQL to PostgreSQL with zero downtime.', reason: 'Owned a production PostgreSQL migration.' }),
   row({ req: 4, label: 'Docker', importance: 'required', status: 'matched', weight: 1, score: 1, sim: 0.9, raw: RESUME_AYESHA, quote: 'Containerised the whole stack with Docker and docker-compose for local and CI parity.', reason: 'Hands-on containerisation of services and CI.' }),
   row({ req: 5, label: 'REST API design', importance: 'preferred', status: 'matched', weight: 0.6, score: 1, sim: 0.86, raw: RESUME_AYESHA, quote: 'Wrote the REST API layer consumed by the partner dashboard.', reason: 'Designed and maintained public-facing REST APIs.' }),
-  row({ req: 6, label: 'AWS', importance: 'preferred', status: 'matched', weight: 0.5, score: 1, sim: 0.78, raw: RESUME_AYESHA, quote: 'AWS Certified Developer - Associate', reason: 'Certification only; no deployment detail in the resume.' }),
+  row({ req: 6, label: 'AWS', importance: 'preferred', status: 'partial', weight: 0.5, score: 0.6, sim: 0.62, raw: RESUME_AYESHA, quote: 'AWS Certified Developer - Associate', reason: 'Certification and a skills-list mention; no deployment detail in the resume.' }),
   row({ req: 7, label: "Bachelor's degree in Computer Science", importance: 'required', status: 'matched', weight: 1, score: 1, sim: 0.92, raw: RESUME_AYESHA, quote: 'BS Computer Science - NED University of Engineering and Technology (2015 - 2019)', reason: 'Degree matches the required field.' }),
 ]
 

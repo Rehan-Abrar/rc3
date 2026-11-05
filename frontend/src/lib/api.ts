@@ -638,8 +638,13 @@ export const interviewApi = {
     return fb
   },
 
-  async decision(interviewId: number, decision: 'selected' | 'rejected', rationale: string): Promise<{ ok: boolean }> {
-    if (!USE_FIXTURES) return request<{ ok: boolean }>(`/interviews/${interviewId}/decision`, { method: 'POST', body: JSON.stringify({ decision, rationale }) })
+  async decision(
+    interviewId: number,
+    decision: 'selected' | 'rejected',
+    rationale: string,
+  ): Promise<{ id: number; application_id: number; decision: 'selected' | 'rejected'; rationale: string; stage: Stage }> {
+    if (!USE_FIXTURES)
+      return request(`/interviews/${interviewId}/decision`, { method: 'POST', body: JSON.stringify({ decision, rationale }) })
     await delay(320)
     store.decisions.push({ interview_id: interviewId, decision, rationale, created_at: new Date().toISOString() })
     const it = store.interviews.find((i) => i.id === interviewId)
@@ -649,7 +654,7 @@ export const interviewApi = {
       app.stage = decision
       store.events.push({ id: nextId(), application_id: app.id, actor_id: 1, actor_name: 'Nadia Rahman', from_stage: from, to_stage: decision, reason: rationale, created_at: new Date().toISOString() })
     }
-    return { ok: true }
+    return { id: nextId(), application_id: app?.id ?? 0, decision, rationale, stage: decision }
   },
 }
 
@@ -808,8 +813,9 @@ export const auditApi = {
     return pairs
   },
 
-  async merge(keepId: number, mergeId: number): Promise<{ ok: boolean }> {
-    if (!USE_FIXTURES) return request<{ ok: boolean }>('/talent/merge', { method: 'POST', body: JSON.stringify({ keep_id: keepId, merge_id: mergeId }) })
+  async merge(keepId: number, mergeId: number): Promise<{ kept: number; merged: number; applications_moved: number }> {
+    if (!USE_FIXTURES)
+      return request('/talent/merge', { method: 'POST', body: JSON.stringify({ keep_id: keepId, merge_id: mergeId }) })
     await delay(400)
     // Keep the surviving candidate's applications; drop the duplicate's overlapping ones.
     const keepJobs = new Set(store.applications.filter((a) => a.candidate_id === keepId).map((a) => a.job_id))
@@ -818,7 +824,7 @@ export const auditApi = {
     store.resumes = store.resumes.filter((r) => !(r.candidate_id === mergeId && !mergedResumes.has(r.id)))
     store.users = store.users.filter((u) => u.id !== mergeId)
     store.events = store.events.filter((e) => store.applications.some((a) => a.id === e.application_id))
-    return { ok: true }
+    return { kept: keepId, merged: mergeId, applications_moved: 0 }
   },
 }
 

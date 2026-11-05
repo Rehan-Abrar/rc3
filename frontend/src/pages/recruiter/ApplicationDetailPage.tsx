@@ -109,8 +109,12 @@ export function ApplicationDetailPage() {
         meta={
           <>
             <Badge tone={stageTone(a.stage)} dot>{STAGE_LABEL[a.stage]}</Badge>
-            {a.override_score != null && <Badge tone="accent"><Star className="h-3 w-3" /> Manual override {Math.round(a.override_score)}</Badge>}
-            {assessment && <Badge tone="neutral">AI score {Math.round(assessment.overall)}</Badge>}
+            {assessment && <Badge tone="neutral">Model score {Math.round(assessment.overall)}</Badge>}
+            {a.override_score != null && (
+              <Badge tone="accent" className="cursor-help" >
+                <Star className="h-3 w-3" /> Recruiter override {Math.round(a.override_score)} · sets rank
+              </Badge>
+            )}
           </>
         }
         actions={
@@ -186,8 +190,11 @@ export function ApplicationDetailPage() {
                   </div>
                 </div>
                 <div className="border-t border-line">
-                  <div className="px-4 py-2">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-2">
                     <p className="text-micro font-medium uppercase tracking-wider text-faint">Requirement evidence</p>
+                    <p className="text-micro text-faint">
+                      % = semantic similarity of the resume excerpt to the requirement · open a row for the exact sentence
+                    </p>
                   </div>
                   <SkillMatrix skills={assessment.skills_detail} />
                 </div>

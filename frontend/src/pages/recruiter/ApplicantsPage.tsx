@@ -78,8 +78,11 @@ export function ApplicantsPage() {
     if (!dupPair) return
     setMerging(true)
     try {
-      await auditApi.merge(dupPair.keep.id, dupPair.duplicate.id)
-      push(`Merged ${dupPair.duplicate.name} into ${dupPair.keep.name}.`)
+      const res = await auditApi.merge(dupPair.keep.id, dupPair.duplicate.id)
+      push(
+        `Merged ${dupPair.duplicate.name} into ${dupPair.keep.name}` +
+          (res.applications_moved ? ` · ${res.applications_moved} application(s) moved.` : '.'),
+      )
       setDupPair(null)
       duplicates.reload()
       list.reload()
