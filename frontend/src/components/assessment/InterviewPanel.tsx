@@ -232,7 +232,7 @@ export function InterviewPanel({ applicationId, candidateName, jobTitle }: { app
           <p className="text-micro text-faint">Interviewer: Nadia Rahman (you). Conflicts with your existing bookings are blocked.</p>
 
           {conflict && (
-            <div className="flex items-start gap-2 rounded-lg border border-bad/30 bg-bad/10 px-3 py-2 text-xs text-bad" role="alert">
+            <div className="flex items-start gap-2 border border-bad/30 bg-bad/5 px-3 py-2 text-xs text-bad" role="alert">
               <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span>{conflict}</span>
             </div>

@@ -136,14 +136,9 @@ export function JobEditorPage() {
         title={editing ? 'Edit job' : 'Post a job'}
         description="Requirements drive the matching model. Be explicit about what is required versus preferred."
         actions={
-          <>
-            <Button variant="ghost" size="sm" onClick={() => nav(-1)}>
-              <ArrowLeft className="h-3.5 w-3.5" /> Back
-            </Button>
-            <Button variant="primary" size="sm" onClick={save} loading={saving}>
-              {editing ? 'Save changes' : 'Publish job'}
-            </Button>
-          </>
+          <Button variant="ghost" size="sm" onClick={() => nav(-1)}>
+            <ArrowLeft className="h-3.5 w-3.5" /> Back
+          </Button>
         }
       />
 
@@ -219,13 +214,16 @@ export function JobEditorPage() {
                     value={form.description}
                     onChange={(e) => set('description', e.target.value)}
                     rows={9}
-                    placeholder="We are hiring a Backend Developer to design Django REST APIs, model data in PostgreSQL and ship containerised services with Docker…"
+                    placeholder="Describe the role, the team and the outcomes you expect. Mention the stack explicitly — extraction reads this text."
                   />
                 </Field>
-                <p className="mt-1 text-micro text-faint">{form.description.trim().length} characters</p>
+                <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                  <p className="body-copy text-[11px] text-faint">At least 40 characters so extraction has material to work with.</p>
+                  <p className="font-mono text-[10px] text-muted tnum">{form.description.trim().length} chars</p>
+                </div>
 
                 {suggested && (
-                  <div className="mt-3 rounded-lg border border-accent/30 bg-accent/5 p-3 animate-rise-in">
+                  <div className="mt-3 border border-accent/30 bg-accent/5 p-3 animate-rise-in">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-xs font-medium text-ink">
                         AI proposed {suggested.length} requirements
@@ -274,7 +272,7 @@ export function JobEditorPage() {
                   <p className="text-xs text-faint">No requirements yet. Add skills manually or extract them from the description.</p>
                 )}
                 {form.requirements.map((r, i) => (
-                  <div key={i} className="rounded-lg border border-line bg-canvas/50 p-2.5">
+                  <div key={i} className="border border-line bg-canvas p-2.5">
                     <div className="flex items-center gap-2">
                       <Input
                         aria-label={`Requirement ${i + 1} label`}
@@ -333,7 +331,7 @@ export function JobEditorPage() {
 
             <Card>
               <CardHeader title="How scoring works" />
-              <div className="space-y-2 p-4 text-xs text-muted">
+              <div className="space-y-2 p-4 body-copy text-xs leading-relaxed text-muted">
                 <p><span className="text-ink">Skills 50%</span> · weighted per requirement (required 1.0, preferred 0.4–0.6).</p>
                 <p><span className="text-ink">Experience 25%</span> · evidenced years against the minimum.</p>
                 <p><span className="text-ink">Projects 15%</span> · semantic relevance to this description.</p>
@@ -344,15 +342,20 @@ export function JobEditorPage() {
                   <Badge>Missing evidence</Badge>
                   <Badge tone="bad">Confirmed absent</Badge>
                 </div>
-                <p className="text-micro text-faint">Missing evidence is not treated as absence of skill. Only explicit statements or recruiter edits mark a skill as confirmed absent.</p>
+                <p className="body-copy text-[11px] leading-relaxed text-faint">Missing evidence is not treated as absence of skill. Only explicit statements or recruiter edits mark a skill as confirmed absent.</p>
               </div>
             </Card>
 
-            <div className="flex items-center justify-between gap-2">
-              <Button variant="ghost" onClick={() => nav(-1)}>Cancel</Button>
-              <Button variant="primary" onClick={save} loading={saving}>
-                <Wand2 className="h-3.5 w-3.5" /> {editing ? 'Save changes' : 'Publish job'}
-              </Button>
+            <div className="flex flex-wrap items-center justify-between gap-2 border border-line bg-surface px-4 py-3">
+              <p className="body-copy text-[11px] text-faint">
+                Requirements decide the matching contract. Publishing makes the role visible to candidates.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" onClick={() => nav(-1)}>Cancel</Button>
+                <Button variant="primary" onClick={save} loading={saving}>
+                  <Wand2 className="h-3.5 w-3.5" /> {editing ? 'Save changes' : 'Publish job'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

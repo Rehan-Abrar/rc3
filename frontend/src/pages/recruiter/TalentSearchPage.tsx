@@ -95,7 +95,7 @@ export function TalentSearchPage() {
                 setQ(ex)
                 void run(ex)
               }}
-              className="chip border-line bg-elevated/50 text-muted transition-colors hover:border-faint/60 hover:text-ink"
+              className="chip border-line bg-canvas text-muted normal-case tracking-normal transition-colors hover:border-accent/40 hover:text-accent"
             >
               {ex}
             </button>
@@ -134,7 +134,7 @@ export function TalentSearchPage() {
           </Card>
 
           {result.hits.map((c) => (
-            <Card key={c.candidate_id} className={cn('p-3 sm:p-4', selected.includes(c.candidate_id) && 'border-accent/50')}>
+            <Card key={c.candidate_id} className={cn('p-3 sm:p-4', selected.includes(c.candidate_id) && 'border-accent')}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
                   <input
@@ -142,28 +142,28 @@ export function TalentSearchPage() {
                     aria-label={`Select ${c.name} for comparison`}
                     checked={selected.includes(c.candidate_id)}
                     onChange={() => toggle(c.candidate_id)}
-                    className="mt-1 h-4 w-4 rounded border-line bg-canvas accent-[rgb(125,156,255)]"
+                    className="mt-1 h-4 w-4 border-line bg-canvas accent-[#0043CA]"
                   />
                   <div>
-                    <p className="text-sm font-semibold text-ink">{c.name}</p>
-                    <p className="text-micro text-faint">{c.email} · pool candidate</p>
+                    <p className="body-copy text-sm font-semibold text-ink">{c.name}</p>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-faint">{c.email} · pool candidate</p>
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {c.matched.slice(0, 6).map((m) => <span key={m} className="chip border-good/25 bg-good/10 text-good">{m}</span>)}
-                      {c.missing.slice(0, 3).map((m) => <span key={m} className="chip border-line bg-elevated/40 text-faint line-through decoration-faint/50">{m}</span>)}
+                      {c.matched.slice(0, 6).map((m) => <span key={m} className="chip border-good/25 bg-good/8 text-good">{m}</span>)}
+                      {c.missing.slice(0, 3).map((m) => <span key={m} className="chip border-line bg-canvas text-muted/80 line-through decoration-faint/60">{m}</span>)}
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-xl font-semibold text-ink tnum">{Math.round(c.score)}<span className="text-xs font-normal text-faint">/100</span></p>
-                  <p className="text-micro text-faint">job relevance</p>
+                  <p className="score-display text-3xl">{Math.round(c.score)}<span className="ml-0.5 font-ui text-xs font-normal text-faint">/100</span></p>
+                  <p className="mt-0.5 font-ui text-[10px] uppercase tracking-[0.06em] text-faint">job relevance</p>
                 </div>
               </div>
 
               <div className="mt-3 space-y-2">
                 {c.evidence.map((e, i) => (
-                  <figure key={i} className="border-l-2 border-accent/50 pl-3">
-                    <blockquote className="text-xs leading-relaxed text-ink/90">{e.quote}</blockquote>
-                    <figcaption className="mt-0.5 text-micro text-faint">
+                  <figure key={i} className="border-l-2 border-accent/60 bg-canvas py-1.5 pl-3 pr-2">
+                    <blockquote className="body-copy text-xs leading-relaxed text-ink/90">{e.quote}</blockquote>
+                    <figcaption className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.06em] text-faint">
                       supports <span className="text-muted">{e.requirement}</span>
                       {typeof e.similarity === 'number' && <span> · {Math.round(e.similarity * 100)}% similarity</span>}
                     </figcaption>

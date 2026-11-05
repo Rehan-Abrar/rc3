@@ -4,7 +4,8 @@ import { analyticsApi, applications, jobs } from '../../lib/api'
 import { useAsync } from '../../lib/useAsync'
 import { Badge, Button, Card, CardHeader, EmptyState, ErrorState, Skeleton, StatCard } from '../../components/ui/core'
 import { PageHeader } from '../../components/layout/AppShell'
-import { STAGE_LABEL, formatDate, formatRelative, formatSalary, stageTone } from '../../lib/utils'
+import { STAGE_LABEL, formatDate, formatSalary, stageTone } from '../../lib/utils'
+import { ScoreNumber } from '../../components/ui/score'
 
 export function RecruiterDashboardPage() {
   const stats = useAsync(() => analyticsApi.overview())
@@ -43,17 +44,17 @@ export function RecruiterDashboardPage() {
             Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-[86px]" />)}
           {s && (
             <>
-              <StatCard label="Active jobs" value={s.active_jobs} hint="Open requisitions" icon={<BriefcaseBusiness className="h-4 w-4" />} />
-              <StatCard label="Applications" value={s.applications} hint="Across all jobs" icon={<Users className="h-4 w-4" />} />
-              <StatCard label="Shortlisted" value={s.shortlisted} tone="good" hint="Human-approved" icon={<CheckCircle2 className="h-4 w-4" />} />
-              <StatCard label="Pending reviews" value={s.pending_reviews} tone="warn" hint="Awaiting a decision" icon={<ClipboardList className="h-4 w-4" />} />
-              <StatCard label="Interviews" value={s.interviews} tone="accent" hint="Scheduled" icon={<CalendarClock className="h-4 w-4" />} />
+              <StatCard index="01" label="Active jobs" value={s.active_jobs} hint="Open requisitions" />
+              <StatCard index="02" label="Applications" value={s.applications} hint="Across all jobs" />
+              <StatCard index="03" label="Shortlisted" value={s.shortlisted} tone="good" hint="Human-approved" />
+              <StatCard index="04" label="Pending reviews" value={s.pending_reviews} tone="warn" hint="Awaiting a decision" />
+              <StatCard index="05" label="Interviews" value={s.interviews} tone="accent" hint="Scheduled" />
             </>
           )}
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_1fr]">
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[1.35fr_1fr]">
         <Card>
           <CardHeader
             title="Ranked applicants"
@@ -74,19 +75,38 @@ export function RecruiterDashboardPage() {
             <EmptyState title="No applicants yet" body="Applications appear here as soon as candidates apply." />
           ) : (
             <ul className="divide-y divide-line">
-              {top.map((a) => (
+              {top.map((a, i) => (
                 <li key={a.application_id}>
                   <Link
                     to={`/recruiter/applications/${a.application_id}`}
-                    className="row-hover flex items-center gap-3 px-4 py-2.5"
+                    className="row-hover grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 overflow-hidden px-4 py-3 sm:grid-cols-[24px_minmax(0,0.9fr)_minmax(0,1fr)_64px]"
                   >
-                    <span className="w-5 text-xs text-faint tnum">{a.score ? Math.round(a.score.overall) : '—'}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm text-ink">{a.candidate.name}</span>
-                      <span className="block truncate text-micro text-faint">{a.matched.slice(0, 3).join(' · ') || 'No evidence yet'}</span>
+                    <span className="font-mono text-[9px] text-faint">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate body-copy text-xs font-semibold text-ink">{a.candidate.name}</span>
+                      <span className="mt-0.5 block truncate body-copy text-[11px] text-muted">
+                        {jobList.data?.find((j) => j.id === a.job_id)?.title ?? a.matched.slice(0, 2).join(' · ') ?? 'Awaiting assessment'}
+                      </span>
                     </span>
-                    <Badge tone={stageTone(a.stage)}>{STAGE_LABEL[a.stage]}</Badge>
-                    <ArrowRight className="h-3.5 w-3.5 text-faint" aria-hidden />
+                    <span className="col-span-2 hidden min-w-0 flex-wrap items-center gap-1 sm:col-span-1 sm:flex">
+                      {a.matched.slice(0, 2).map((m) => (
+                        <span key={m} className="max-w-[130px] truncate border border-line bg-canvas px-1.5 py-0.5 font-ui text-[10px] text-muted">{m}</span>
+                      ))}
+                      <Badge tone={stageTone(a.stage)}>{STAGE_LABEL[a.stage]}</Badge>
+                    </span>
+                    <span className="col-start-3 row-start-1 text-right sm:col-start-4">
+                      {a.score ? (
+                        <ScoreNumber score={a.score} size="md" />
+                      ) : (
+                        <span className="text-sm text-faint">—</span>
+                      )}
+                    </span>
+                    <span className="col-span-2 col-start-2 flex items-center gap-1 sm:hidden">
+                      {a.matched.slice(0, 2).map((m) => (
+                        <span key={m} className="max-w-[110px] truncate border border-line bg-canvas px-1.5 py-0.5 font-ui text-[10px] text-muted">{m}</span>
+                      ))}
+                      <Badge tone={stageTone(a.stage)}>{STAGE_LABEL[a.stage]}</Badge>
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -141,14 +161,20 @@ export function RecruiterDashboardPage() {
               </div>
             ) : (
               <ul className="divide-y divide-line">
-                {(s?.common_gaps ?? []).map((g) => (
-                  <li key={g.skill} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                    <div className="min-w-0">
-                      <p className="text-xs text-ink">{g.skill}</p>
-                    </div>
-                    <span className="text-micro text-muted tnum">{g.count} applicants</span>
-                  </li>
-                ))}
+                {(s?.common_gaps ?? []).map((g) => {
+                  const max = Math.max(1, ...(s?.common_gaps ?? []).map((x) => x.count))
+                  return (
+                    <li key={g.skill} className="px-4 py-2.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="truncate body-copy text-xs text-ink">{g.skill}</p>
+                        <span className="shrink-0 font-mono text-[10px] text-muted tnum">{String(g.count).padStart(2, '0')}</span>
+                      </div>
+                      <div className="mt-1.5 h-1 w-full overflow-hidden bg-elevated">
+                        <div className="h-full bg-accent/70" style={{ width: `${(g.count / max) * 100}%` }} />
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </Card>

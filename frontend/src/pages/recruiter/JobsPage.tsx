@@ -100,8 +100,8 @@ export function JobsPage() {
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[820px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-line text-micro uppercase tracking-wider text-faint">
-                    <th className="px-4 py-2 font-medium">Role</th>
+                  <tr className="border-b border-line font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
+                    <th className="px-4 py-2.5 font-medium">Role</th>
                     <th className="px-4 py-2 font-medium">Location</th>
                     <th className="px-4 py-2 font-medium">Compensation</th>
                     <th className="px-4 py-2 text-right font-medium">Applicants</th>
@@ -114,11 +114,11 @@ export function JobsPage() {
                 <tbody className="divide-y divide-line">
                   {rows.map((j) => (
                     <tr key={j.id} className="row-hover">
-                      <td className="px-4 py-2.5">
-                        <Link to={`/recruiter/jobs/${j.id}`} className="font-medium text-ink hover:text-accent">
+                      <td className="px-4 py-3">
+                        <Link to={`/recruiter/jobs/${j.id}`} className="body-copy text-sm font-semibold text-ink hover:text-accent">
                           {j.title}
                         </Link>
-                        <p className="text-micro text-faint">
+                        <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-faint">
                           {j.department} · {j.employment_type}
                         </p>
                       </td>

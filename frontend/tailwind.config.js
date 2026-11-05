@@ -19,6 +19,9 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        ui: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Poppins', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        body: ['Instrument Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       fontSize: {
@@ -33,11 +36,11 @@ export default {
         '3xl': ['34px', { lineHeight: '40px', letterSpacing: '-0.02em' }],
       },
       borderRadius: {
-        card: '10px',
+        card: '8px',
       },
       boxShadow: {
-        panel: '0 1px 0 0 rgb(255 255 255 / 0.03) inset, 0 8px 24px -12px rgb(0 0 0 / 0.6)',
-        pop: '0 24px 60px -20px rgb(0 0 0 / 0.7), 0 2px 8px -2px rgb(0 0 0 / 0.4)',
+        panel: '0 1px 2px 0 rgb(0 15 46 / 0.04)',
+        pop: '0 24px 48px -24px rgb(0 15 46 / 0.28), 0 2px 6px -2px rgb(0 15 46 / 0.08)',
       },
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },

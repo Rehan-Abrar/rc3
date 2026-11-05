@@ -9,11 +9,11 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'subtle'
 type Size = 'sm' | 'md'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-accent text-accent-ink hover:brightness-110 active:brightness-95 shadow-sm',
-  secondary: 'border border-line bg-elevated text-ink hover:border-faint/70 hover:bg-elevated/80',
-  ghost: 'text-muted hover:bg-elevated hover:text-ink',
-  danger: 'border border-bad/40 bg-bad/10 text-bad hover:bg-bad/20',
-  subtle: 'bg-elevated/60 text-ink hover:bg-elevated',
+  primary: 'bg-accent text-accent-ink hover:bg-accent/88 active:bg-accent',
+  secondary: 'border border-ink/15 bg-surface text-ink hover:border-ink/30 hover:bg-canvas',
+  ghost: 'text-muted hover:bg-elevated hover:text-accent',
+  danger: 'border border-bad/30 bg-bad/5 text-bad hover:bg-bad/10',
+  subtle: 'bg-elevated text-accent hover:bg-accent/12',
 }
 
 export function Button({
@@ -30,8 +30,8 @@ export function Button({
       {...props}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex select-none items-center justify-center gap-1.5 rounded-lg font-medium transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50',
-        size === 'sm' ? 'h-8 px-2.5 text-xs' : 'h-9 px-3.5 text-sm',
+        'inline-flex select-none items-center justify-center gap-1.5 rounded-none font-body text-sm font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45',
+        size === 'sm' ? 'h-8 px-3 text-xs' : 'h-10 px-4',
         variants[variant],
         className,
       )}
@@ -45,11 +45,11 @@ export function Button({
 /* ---------------------------------- Badge ---------------------------------- */
 
 const tones: Record<Tone, string> = {
-  neutral: 'border-line bg-elevated/60 text-muted',
-  accent: 'border-accent/30 bg-accent/10 text-accent',
-  good: 'border-good/30 bg-good/10 text-good',
-  warn: 'border-warn/30 bg-warn/10 text-warn',
-  bad: 'border-bad/30 bg-bad/10 text-bad',
+  neutral: 'border-line bg-canvas text-muted',
+  accent: 'border-accent/25 bg-accent/8 text-accent',
+  good: 'border-good/25 bg-good/8 text-good',
+  warn: 'border-warn/25 bg-warn/8 text-warn',
+  bad: 'border-bad/30 bg-bad/8 text-bad',
 }
 
 export function Badge({
@@ -65,7 +65,14 @@ export function Badge({
 }) {
   return (
     <span className={cn('chip', tones[tone], className)}>
-      {dot && <span className={cn('h-1.5 w-1.5 rounded-full', tone === 'good' ? 'bg-good' : tone === 'warn' ? 'bg-warn' : tone === 'bad' ? 'bg-bad' : tone === 'accent' ? 'bg-accent' : 'bg-faint')} />}
+      {dot && (
+        <span
+          className={cn(
+            'h-1 w-1',
+            tone === 'good' ? 'bg-good' : tone === 'warn' ? 'bg-warn' : tone === 'bad' ? 'bg-bad' : tone === 'accent' ? 'bg-accent' : 'bg-faint',
+          )}
+        />
+      )}
       {children}
     </span>
   )
@@ -81,10 +88,10 @@ export function CardHeader({ title, subtitle, actions }: { title: ReactNode; sub
   return (
     <header className="panel-header">
       <div className="min-w-0">
-        <h2 className="text-base font-semibold tracking-tight text-ink">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
+        <h2 className="font-display text-[15px] font-medium leading-tight text-ink">{title}</h2>
+        {subtitle && <p className="mt-1 body-copy text-xs text-muted">{subtitle}</p>}
       </div>
-      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+      {actions && <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">{actions}</div>}
     </header>
   )
 }
@@ -100,26 +107,26 @@ export function Field({ label, htmlFor, hint, error, children, required }: { lab
       </label>
       {children}
       {error ? (
-        <p className="mt-1 text-xs text-bad" role="alert">
+        <p className="mt-1 body-copy text-xs text-bad" role="alert">
           {error}
         </p>
       ) : hint ? (
-        <p className="mt-1 text-xs text-faint">{hint}</p>
+        <p className="mt-1 body-copy text-xs text-faint">{hint}</p>
       ) : null}
     </div>
   )
 }
 
 export const Input = ({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) => (
-  <input {...props} className={cn('field h-9', className)} />
+  <input {...props} className={cn('field h-10', className)} />
 )
 
 export const Textarea = ({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) => (
-  <textarea {...props} className={cn('field min-h-[96px] resize-y', className)} />
+  <textarea {...props} className={cn('field min-h-[96px] resize-y body-copy', className)} />
 )
 
 export const Select = ({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) => (
-  <select {...props} className={cn('field h-9 pr-8', className)}>
+  <select {...props} className={cn('field h-10 pr-8', className)}>
     {children}
   </select>
 )
@@ -128,8 +135,8 @@ export const Select = ({ className, children, ...props }: SelectHTMLAttributes<H
 
 export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: Array<{ value: T; label: string; count?: number }>; value: T; onChange: (v: T) => void }) {
   return (
-    <div className="flex flex-wrap items-center gap-1 rounded-lg border border-line bg-canvas/60 p-1" role="tablist">
-      {tabs.map((t) => (
+    <div className="flex flex-wrap items-stretch border border-line bg-surface" role="tablist">
+      {tabs.map((t, i) => (
         <button
           key={t.value}
           type="button"
@@ -137,12 +144,15 @@ export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: Array<
           aria-selected={value === t.value}
           onClick={() => onChange(t.value)}
           className={cn(
-            'rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
-            value === t.value ? 'bg-elevated text-ink shadow-sm' : 'text-muted hover:text-ink',
+            'px-3 py-2 font-body text-xs font-medium transition-colors',
+            i > 0 && 'border-l border-line',
+            value === t.value ? 'bg-accent text-accent-ink' : 'text-muted hover:bg-canvas hover:text-ink',
           )}
         >
           {t.label}
-          {typeof t.count === 'number' && <span className="ml-1.5 text-faint">{t.count}</span>}
+          {typeof t.count === 'number' && (
+            <span className={cn('ml-1.5 tnum', value === t.value ? 'text-white/70' : 'text-faint')}>{t.count}</span>
+          )}
         </button>
       ))}
     </div>
@@ -172,27 +182,27 @@ export function Dialog({ open, onClose, title, description, children, footer, wi
 
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-[2px] sm:items-center sm:p-6" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/35 p-0 sm:items-center sm:p-6" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div
         ref={ref}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={cn('w-full animate-rise-in rounded-t-xl border border-line bg-surface shadow-pop sm:rounded-xl', width)}
+        className={cn('w-full animate-rise-in border border-line bg-surface shadow-pop', width)}
       >
         <div className="flex items-start justify-between gap-4 border-b border-line px-4 py-3">
           <div>
-            <h2 id={titleId} className="text-base font-semibold text-ink">
+            <h2 id={titleId} className="font-display text-[15px] font-medium text-ink">
               {title}
             </h2>
-            {description && <p className="mt-0.5 text-xs text-muted">{description}</p>}
+            {description && <p className="mt-1 body-copy text-xs text-muted">{description}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Close dialog" className="rounded-md p-1 text-faint transition-colors hover:bg-elevated hover:text-ink">
+          <button type="button" onClick={onClose} aria-label="Close dialog" className="p-1 text-faint transition-colors hover:bg-canvas hover:text-ink">
             <X className="h-4 w-4" />
           </button>
         </div>
         {children && <div className="max-h-[70vh] overflow-y-auto px-4 py-4">{children}</div>}
-        {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-line px-4 py-3">{footer}</div>}
+        {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-line bg-canvas/60 px-4 py-3">{footer}</div>}
       </div>
     </div>
   )
@@ -203,22 +213,22 @@ export function Dialog({ open, onClose, title, description, children, footer, wi
 export function EmptyState({ icon, title, body, action }: { icon?: ReactNode; title: string; body?: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 px-6 py-14 text-center">
-      {icon && <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-elevated text-faint">{icon}</div>}
-      <h3 className="text-sm font-semibold text-ink">{title}</h3>
-      {body && <p className="max-w-sm text-xs leading-relaxed text-muted">{body}</p>}
+      {icon && <div className="mb-1 flex h-10 w-10 items-center justify-center border border-line bg-canvas text-faint">{icon}</div>}
+      <h3 className="font-display text-sm font-medium text-ink">{title}</h3>
+      {body && <p className="max-w-sm body-copy text-xs leading-relaxed text-muted">{body}</p>}
       {action && <div className="mt-2">{action}</div>}
     </div>
   )
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded-md bg-elevated/80', className)} />
+  return <div className={cn('animate-pulse rounded-none bg-elevated', className)} />
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-      <p className="max-w-md text-sm text-muted">{message}</p>
+      <p className="max-w-md body-copy text-sm text-muted">{message}</p>
       {onRetry && (
         <Button size="sm" onClick={onRetry}>
           Try again
@@ -234,7 +244,7 @@ export function Avatar({ name, size = 32 }: { name: string; size?: number }) {
   return (
     <span
       aria-hidden
-      className="inline-flex shrink-0 items-center justify-center rounded-full border border-line bg-elevated font-semibold text-muted"
+      className="inline-flex shrink-0 items-center justify-center rounded-none bg-elevated font-body font-semibold text-accent"
       style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
     >
       {initials(name)}
@@ -242,16 +252,19 @@ export function Avatar({ name, size = 32 }: { name: string; size?: number }) {
   )
 }
 
-export function StatCard({ label, value, hint, icon, tone = 'neutral' }: { label: string; value: ReactNode; hint?: string; icon?: ReactNode; tone?: Tone }) {
-  const toneText = tone === 'good' ? 'text-good' : tone === 'warn' ? 'text-warn' : tone === 'bad' ? 'text-bad' : tone === 'accent' ? 'text-accent' : 'text-ink'
+export function StatCard({ label, value, hint, icon, tone = 'neutral', index }: { label: string; value: ReactNode; hint?: string; icon?: ReactNode; tone?: Tone; index?: string }) {
+  const toneText = tone === 'good' ? 'text-good' : tone === 'warn' ? 'text-warn' : tone === 'bad' ? 'text-bad' : 'text-ink'
   return (
     <div className="panel px-4 py-3.5">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-muted">{label}</p>
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-faint">
+          {index && <span className="mr-1.5 text-ink/25">{index}</span>}
+          {label}
+        </p>
         {icon && <span className="text-faint">{icon}</span>}
       </div>
-      <p className={cn('mt-1 text-2xl font-semibold tracking-tight tnum', toneText)}>{value}</p>
-      {hint && <p className="mt-0.5 text-micro text-faint">{hint}</p>}
+      <p className={cn('mt-1.5 font-display text-[30px] font-light leading-none tracking-tight tnum', toneText)}>{value}</p>
+      {hint && <p className="mt-1.5 body-copy text-[11px] leading-snug text-muted">{hint}</p>}
     </div>
   )
 }

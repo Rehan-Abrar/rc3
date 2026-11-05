@@ -52,7 +52,7 @@ export function MyApplicationsPage() {
                 />
                 <div className="px-4 py-4">
                   {rejected ? (
-                    <div className="flex items-center gap-2 rounded-lg border border-bad/30 bg-bad/10 px-3 py-2.5 text-xs text-bad">
+                    <div className="flex items-center gap-2 border border-bad/30 bg-bad/5 px-3 py-2.5 text-xs text-bad">
                       <Clock className="h-4 w-4" /> This application was closed by the recruiter. You can apply to other roles.
                     </div>
                   ) : (
@@ -64,7 +64,7 @@ export function MyApplicationsPage() {
                           <li key={s} className="flex min-w-[92px] flex-1 items-start gap-2">
                             <span className="flex flex-col items-center">
                               <span
-                                className={`flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
+                                className={`flex h-5 w-5 items-center justify-center border text-[10px] ${
                                   isCurrent
                                     ? 'border-accent bg-accent text-accent-ink'
                                     : done

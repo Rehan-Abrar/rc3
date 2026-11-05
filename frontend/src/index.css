@@ -4,19 +4,19 @@
 
 @layer base {
   :root {
-    /* Dark-neutral recruiter console. One accent, quiet borders, no decoration. */
-    --canvas: 11 14 19;
-    --surface: 17 21 28;
-    --elevated: 24 29 38;
-    --line: 39 46 58;
-    --ink: 233 238 246;
-    --muted: 156 167 183;
-    --faint: 108 120 137;
-    --accent: 125 156 255;
-    --accent-ink: 8 12 20;
-    --good: 61 220 151;
-    --warn: 240 178 74;
-    --bad: 244 114 128;
+    /* Captain design system: electric blue, white surfaces, deep ink. Flat, border-led. */
+    --canvas: 248 250 252; /* #F8FAFC */
+    --surface: 255 255 255; /* #FFFFFF */
+    --elevated: 238 243 251; /* #EEF3FB */
+    --line: 229 231 235; /* #E5E7EB */
+    --ink: 0 15 46; /* #000F2E */
+    --muted: 88 99 115; /* #58636F */
+    --faint: 124 134 150; /* #7C8696 */
+    --accent: 0 67 202; /* #0043CA */
+    --accent-ink: 255 255 255; /* text on accent */
+    --good: 4 120 87; /* #047857 */
+    --warn: 180 83 9; /* #B45309 */
+    --bad: 220 38 38; /* #DC2626 */
   }
 
   * {
@@ -24,7 +24,7 @@
   }
 
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
@@ -33,12 +33,18 @@
     text-rendering: optimizeLegibility;
   }
 
+  h1,
+  h2,
+  h3 {
+    font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  }
+
   ::selection {
-    background: rgb(var(--accent) / 0.28);
+    background: rgb(var(--accent) / 0.18);
   }
 
   :focus-visible {
-    outline: 2px solid rgb(var(--accent) / 0.85);
+    outline: 2px solid rgb(var(--accent) / 0.9);
     outline-offset: 2px;
   }
 
@@ -63,15 +69,16 @@
   }
   ::-webkit-scrollbar-thumb {
     background: rgb(var(--line));
-    border-radius: 999px;
+    border-radius: 0;
     border: 3px solid rgb(var(--canvas));
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--faint) / 0.6);
+    background: rgb(var(--faint) / 0.7);
   }
 }
 
 @layer components {
+  /* Quiet containers: white, 1px border, small radius, never elevated. */
   .panel {
     @apply rounded-card border border-line bg-surface;
   }
@@ -81,25 +88,25 @@
   }
 
   .label {
-    @apply mb-1.5 block text-xs font-medium text-muted;
+    @apply mb-1.5 block text-xs font-medium text-ink/70;
   }
 
   .field {
-    @apply w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink placeholder:text-faint transition-colors;
+    @apply w-full rounded-none border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-faint transition-colors;
   }
   .field:hover {
-    @apply border-faint/60;
+    @apply border-faint/70;
   }
   .field:focus {
-    @apply border-accent/70 outline-none ring-2 ring-accent/20;
+    @apply border-accent outline-none ring-1 ring-accent/25;
   }
 
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-micro font-medium;
+    @apply inline-flex items-center gap-1.5 rounded-none border px-1.5 py-0.5 font-ui text-[11px] font-medium uppercase leading-4 tracking-[0.06em];
   }
 
   .row-hover {
-    @apply transition-colors hover:bg-elevated/60;
+    @apply transition-colors hover:bg-canvas;
   }
 
   .divider {
@@ -108,6 +115,31 @@
 
   .link {
     @apply text-accent underline-offset-2 hover:underline;
+  }
+
+  /* [ BRACKETED MICRO COPY ] used above every page title and section heading. */
+  .bracket {
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-ink/45;
+  }
+
+  .bracket-blue {
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-accent;
+  }
+
+  /* Editorial headline voice from the design system. */
+  .display {
+    font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    @apply font-light tracking-[-0.02em] text-ink;
+  }
+
+  .body-copy {
+    font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* Big light score numerals. */
+  .score-display {
+    font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    @apply font-light tracking-tight text-accent tnum;
   }
 }
 

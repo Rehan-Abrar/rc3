@@ -7,7 +7,7 @@ import { Badge } from './core'
 const toneText: Record<Tone, string> = {
   neutral: 'text-ink',
   accent: 'text-accent',
-  good: 'text-good',
+  good: 'text-accent',
   warn: 'text-warn',
   bad: 'text-bad',
 }
@@ -18,14 +18,14 @@ export function ScoreNumber({ score, size = 'md' }: { score: Score | null; size?
     // Show the number AND the caveat: hiding it makes ranked lists look broken and
     // hides the ordering recruiters rely on, but the score still deserves a warning.
     return (
-      <span className="inline-flex items-center justify-end gap-1.5">
-        <span className={cn('font-semibold tracking-tight tnum text-muted', size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-3xl' : 'text-xl')}>
+      <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
+        <span className={cn('score-display text-muted', size === 'sm' ? 'text-base' : size === 'lg' ? 'text-4xl' : 'text-2xl')}>
           {Math.round(score.overall)}
-          <span className="ml-0.5 text-xs font-normal text-faint">/100</span>
+          <span className="ml-0.5 font-ui text-xs font-normal text-faint">/100</span>
         </span>
         <span
           title="Too little verified evidence for a confident score"
-          className="inline-flex items-center gap-1 rounded-md border border-line bg-elevated/60 px-1.5 py-0.5 text-micro font-medium text-muted"
+          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap border border-line bg-canvas px-1.5 py-0.5 font-ui text-[10px] font-medium uppercase tracking-[0.06em] text-muted"
         >
           <AlertTriangle className="h-3 w-3" /> thin
         </span>
@@ -34,9 +34,9 @@ export function ScoreNumber({ score, size = 'md' }: { score: Score | null; size?
   }
   const tone = scoreTone(score.overall)
   return (
-    <span className={cn('font-semibold tracking-tight tnum', toneText[tone], size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-3xl' : 'text-xl')}>
+    <span className={cn('score-display', toneText[tone], size === 'sm' ? 'text-base' : size === 'lg' ? 'text-4xl' : 'text-2xl')}>
       {Math.round(score.overall)}
-      <span className="ml-0.5 text-xs font-normal text-faint">/100</span>
+      <span className="ml-0.5 font-ui text-xs font-normal text-faint">/100</span>
     </span>
   )
 }
@@ -51,7 +51,7 @@ export function ConfidenceBand({ confidence, insufficient }: { confidence: Confi
           <span
             key={i}
             className={cn(
-              'w-1 rounded-sm transition-colors',
+              'w-1 transition-colors',
               i === 0 ? 'h-1.5' : i === 1 ? 'h-2.5' : 'h-3.5',
               i < bars
                 ? tone === 'good'
@@ -64,7 +64,7 @@ export function ConfidenceBand({ confidence, insufficient }: { confidence: Confi
           />
         ))}
       </span>
-      <span className="text-micro text-muted">{confidenceLabel(confidence)}</span>
+      <span className="font-ui text-[10px] uppercase tracking-[0.06em] text-muted">{confidenceLabel(confidence)}</span>
     </span>
   )
 }
@@ -91,9 +91,9 @@ export function ScoreBreakdown({ score, compact }: { score: Score; compact?: boo
               </span>
               <span className="text-xs font-medium text-ink tnum">{value}</span>
             </div>
-            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-elevated" role="meter" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} aria-label={`${d.label} score`}>
+            <div className="mt-1 h-1.5 w-full overflow-hidden bg-elevated" role="meter" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} aria-label={`${d.label} score`}>
               <div
-                className={cn('h-full rounded-full transition-[width] duration-500', tone === 'good' ? 'bg-good' : tone === 'warn' ? 'bg-warn' : 'bg-bad')}
+                className={cn('h-full transition-[width] duration-500', tone === 'good' ? 'bg-accent' : tone === 'warn' ? 'bg-warn' : 'bg-bad')}
                 style={{ width: `${Math.max(2, value)}%` }}
               />
             </div>
@@ -145,8 +145,8 @@ export function SkillStatusPill({ status, support }: { status: SkillStatus; supp
 
 export function EvidenceQuote({ quote, label, similarity, support }: { quote: string; label?: string; similarity?: number | null; support?: string }) {
   return (
-    <figure className="border-l-2 border-accent/50 pl-3">
-      <blockquote className="text-xs leading-relaxed text-ink/90">
+    <figure className="border-l-2 border-accent/60 bg-canvas/70 py-2 pl-3 pr-2">
+      <blockquote className="body-copy text-xs leading-relaxed text-ink/90">
         <Quote className="mr-1 inline h-3 w-3 text-accent/70" aria-hidden />
         {quote}
       </blockquote>
@@ -182,19 +182,19 @@ export function SkillMatrix({ skills, showEvidence = true }: { skills: SkillRow[
               aria-expanded={hasEvidence ? expanded : undefined}
               disabled={!hasEvidence}
             >
-              <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', s.status === 'matched' ? 'bg-good' : s.status === 'partial' ? 'bg-warn' : s.status === 'confirmed_absent' ? 'bg-bad' : 'bg-line')} />
+              <span className={cn('h-1.5 w-1.5 shrink-0', s.status === 'matched' ? 'bg-good' : s.status === 'partial' ? 'bg-warn' : s.status === 'confirmed_absent' ? 'bg-bad' : 'bg-line')} />
               <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-ink">{s.label}</span>
+                <span className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span className="min-w-0 truncate text-sm text-ink">{s.label}</span>
                   {s.importance === 'preferred' && <span className="text-micro text-faint">preferred</span>}
                   {s.support === 'flagged_unverified' && <AlertTriangle className="h-3 w-3 text-bad" aria-label="Unverified evidence" />}
                 </span>
                 {!expanded && (s.evidence
-                  ? <span className="mt-0.5 block truncate text-micro text-muted">“{s.evidence.quote}”</span>
-                  : s.reason && <span className="mt-0.5 block truncate text-micro text-faint">{s.reason}</span>)}
+                  ? <span className="mt-0.5 block truncate body-copy text-[11px] text-muted">“{s.evidence.quote}”</span>
+                  : s.reason && <span className="mt-0.5 block truncate body-copy text-[11px] text-faint">{s.reason}</span>)}
               </span>
               <span className="flex shrink-0 items-center gap-2">
-                <Badge tone={meta.tone} className="hidden sm:inline-flex">
+                <Badge tone={meta.tone} className="hidden sm:inline-flex whitespace-nowrap">
                   {meta.label}
                 </Badge>
                 {typeof s.similarity === 'number' && <span className="hidden text-micro text-faint tnum md:inline">{Math.round(s.similarity * 100)}%</span>}
@@ -216,7 +216,7 @@ export function SkillMatrix({ skills, showEvidence = true }: { skills: SkillRow[
 export function AssessmentSummary({ assessment }: { assessment: Assessment }) {
   return (
     <div className="space-y-3 px-4 py-3">
-      <p className="text-xs leading-relaxed text-ink/85">{assessment.summary ?? assessment.explanation}</p>
+      <p className="body-copy text-xs leading-relaxed text-ink/85">{assessment.summary ?? assessment.explanation}</p>
       <ModeBadges score={assessment} />
     </div>
   )

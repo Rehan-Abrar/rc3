@@ -204,12 +204,12 @@ export function ApplicantsPage() {
           <div className="space-y-3 text-xs">
             <p className="text-muted">{dupPair.reason} ({Math.round(dupPair.similarity * 100)}% document similarity).</p>
             <div className="grid gap-2 sm:grid-cols-2">
-              <div className="rounded-lg border border-good/30 bg-good/5 p-2.5">
+              <div className="border border-good/25 bg-good/5 p-2.5">
                 <p className="text-micro text-good">Keep</p>
                 <p className="mt-0.5 font-medium text-ink">{dupPair.keep.name}</p>
                 <p className="text-micro text-faint">{dupPair.keep.email}</p>
               </div>
-              <div className="rounded-lg border border-line bg-canvas/50 p-2.5">
+              <div className="border border-line bg-canvas p-2.5">
                 <p className="text-micro text-faint">Merge into keep</p>
                 <p className="mt-0.5 font-medium text-ink">{dupPair.duplicate.name}</p>
                 <p className="text-micro text-faint">{dupPair.duplicate.email}</p>
@@ -227,7 +227,7 @@ export function ApplicantsPage() {
           <Button size="sm" variant={showFilters ? 'secondary' : 'ghost'} onClick={() => setShowFilters((v) => !v)}>
             <SlidersHorizontal className="h-3.5 w-3.5" /> Filters
           </Button>
-          <span className="text-micro text-faint tnum">{filtered.length} of {rows.length}</span>
+          <span className="font-mono text-[10px] text-muted tnum">{filtered.length} / {rows.length}</span>
         </div>
 
         {showFilters && (
@@ -249,7 +249,7 @@ export function ApplicantsPage() {
                   step={5}
                   value={minScore}
                   onChange={(e) => setMinScore(Number(e.target.value))}
-                  className="w-full accent-[rgb(125,156,255)]"
+                  className="w-full accent-[#0043CA]"
                   aria-label="Minimum score"
                 />
                 <span className="w-7 text-right text-xs text-muted tnum">{minScore}</span>
@@ -267,7 +267,7 @@ export function ApplicantsPage() {
                 type="checkbox"
                 checked={hideThin}
                 onChange={(e) => setHideThin(e.target.checked)}
-                className="h-4 w-4 rounded border-line bg-canvas accent-[rgb(125,156,255)]"
+                className="h-4 w-4 border-line bg-canvas accent-[#0043CA]"
               />
               <span className="text-xs text-muted">Hide insufficient evidence</span>
             </label>
@@ -298,13 +298,13 @@ export function ApplicantsPage() {
               <Card key={r.application_id} className={cn('overflow-hidden transition-colors', open && 'border-faint/60')}>
                 <div className="flex flex-wrap items-start gap-3 px-3 py-3 sm:px-4">
                   <div className="flex w-9 shrink-0 flex-col items-center pt-0.5">
-                    <span className="text-xs text-faint tnum">#{rank}</span>
+                    <span className="mt-0.5 font-mono text-[11px] font-medium text-ink/45 tnum">{String(rank).padStart(2, '0')}</span>
                     <input
                       type="checkbox"
                       aria-label={`Select ${r.candidate.name} for comparison`}
                       checked={selected.includes(r.candidate.id)}
                       onChange={() => toggleSelect(r.candidate.id)}
-                      className="mt-2 h-4 w-4 rounded border-line bg-canvas accent-[rgb(125,156,255)]"
+                      className="mt-2 h-4 w-4 border-line bg-canvas accent-[#0043CA]"
                     />
                   </div>
 
@@ -316,7 +316,7 @@ export function ApplicantsPage() {
                       <Badge tone={stageTone(r.stage)}>{STAGE_LABEL[r.stage]}</Badge>
                       {thin && <Badge tone="warn"><ShieldAlert className="h-3 w-3" /> Thin evidence</Badge>}
                     </div>
-                    <p className="mt-0.5 text-micro text-faint">
+                    <p className="mt-0.5 body-copy text-[11px] text-faint">
                       {r.candidate.email} ·{' '}
                       {r.resume_id ? (
                         <a
@@ -336,18 +336,18 @@ export function ApplicantsPage() {
 
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {r.matched.slice(0, 6).map((m) => (
-                        <span key={m} className="chip border-good/25 bg-good/10 text-good">{m}</span>
+                        <span key={m} className="chip border-good/25 bg-good/8 text-good">{m}</span>
                       ))}
                       {r.missing.slice(0, 3).map((m) => (
-                        <span key={m} className="chip border-line bg-elevated/40 text-faint line-through decoration-faint/50">{m}</span>
+                        <span key={m} className="chip border-line bg-canvas text-muted/80 line-through decoration-faint/60">{m}</span>
                       ))}
                     </div>
                   </div>
 
                   <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:flex-col sm:items-end">
                     <div className="text-right">
-                      <ScoreNumber score={r.score} />
-                      <p className="text-micro text-faint">{scoreBandLabel(r.score)}</p>
+                      <ScoreNumber score={r.score} size="lg" />
+                      <p className="mt-0.5 font-ui text-[10px] uppercase tracking-[0.06em] text-muted">{scoreBandLabel(r.score)}</p>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Button size="sm" variant="ghost" onClick={() => setExpanded(open ? null : r.application_id)} aria-expanded={open}>

@@ -45,8 +45,9 @@ export function RegisterPage() {
 
   return (
     <AuthLayout footer={<AuthFooter />}>
-      <h2 className="text-2xl font-semibold tracking-tight">Create an account</h2>
-      <p className="mt-1 text-sm text-muted">Pick the workspace you need.</p>
+      <p className="bracket-blue">[ Create account ]</p>
+      <h2 className="display mt-2 text-[32px] leading-[1.1]">Pick your workspace.</h2>
+      <p className="mt-1.5 body-copy text-sm text-muted">Recruiter console or candidate portal — same evidence engine.</p>
 
       <div className="mt-5 grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Account type">
         {ROLES.map((r) => (
@@ -57,13 +58,13 @@ export function RegisterPage() {
             aria-checked={role === r.value}
             onClick={() => setRole(r.value)}
             className={cn(
-              'rounded-lg border p-3 text-left transition-colors',
-              role === r.value ? 'border-accent/60 bg-accent/10' : 'border-line bg-surface hover:bg-elevated/60',
+              'border p-3 text-left transition-colors',
+              role === r.value ? 'border-accent bg-accent/8' : 'border-line bg-surface hover:bg-canvas',
             )}
           >
             <r.icon className={cn('h-4 w-4', role === r.value ? 'text-accent' : 'text-faint')} aria-hidden />
-            <p className="mt-1.5 text-xs font-semibold text-ink">{r.title}</p>
-            <p className="mt-0.5 text-micro leading-snug text-faint">{r.body}</p>
+            <p className="mt-1.5 body-copy text-xs font-semibold text-ink">{r.title}</p>
+            <p className="mt-0.5 body-copy text-[11px] leading-snug text-faint">{r.body}</p>
           </button>
         ))}
       </div>
@@ -85,7 +86,7 @@ export function RegisterPage() {
         </div>
 
         {error && (
-          <div className="flex items-start gap-2 rounded-lg border border-bad/30 bg-bad/10 px-3 py-2 text-xs text-bad" role="alert">
+          <div className="flex items-start gap-2 border border-bad/30 bg-bad/5 px-3 py-2 body-copy text-xs text-bad" role="alert">
             <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>{error}</span>
           </div>
