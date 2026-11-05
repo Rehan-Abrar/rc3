@@ -63,7 +63,6 @@ export function InterviewsPage() {
           <CardHeader
             title="Scheduled"
             subtitle="Booked slots across every open application"
-            actions={<span className="font-display text-3xl font-light leading-none text-ink tnum">{String(rows.length).padStart(2, '0')}</span>}
           />
           {list.error ? (
             <ErrorState message={list.error} onRetry={list.reload} />
