@@ -211,7 +211,7 @@ def add_note(app_id: int, body: schemas.NoteIn, db: Session = Depends(get_db),
 
 
 @router.post("/{app_id}/assess")
-def assess(app_id: int, db: Session = Depends(get_db),
+def assess(app_id: int, force: bool = False, db: Session = Depends(get_db),
            user: m.User = Depends(current_user)):
     a = _app_or_404(db, app_id)
     if user.role == "candidate":
@@ -221,6 +221,10 @@ def assess(app_id: int, db: Session = Depends(get_db),
         job = db.get(m.Job, a.job_id)
         if not job or job.recruiter_id != user.id:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your vacancy")
+    # Cached by default: an assessment costs two model calls, so only recompute on request.
+    existing = db.scalar(select(m.Assessment).where(m.Assessment.application_id == a.id))
+    if existing is not None and not force:
+        return assess_svc.assessment_payload(db, a)
     assess_svc.run_assessment(db, a, user.id)
     return assess_svc.assessment_payload(db, a)
 
@@ -240,7 +244,7 @@ def get_assessment(app_id: int, db: Session = Depends(get_db),
 
 
 @router.post("/{app_id}/reassess")
-def reassess_alias(app_id: int, db: Session = Depends(get_db),
+def reassess_alias(app_id: int, force: bool = True, db: Session = Depends(get_db),
                    user: m.User = Depends(current_user)):
     """Alias of /applications/{id}/assess (frontend path)."""
-    return assess(app_id, db, user)
+    return assess(app_id, force, db, user)
