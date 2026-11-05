@@ -96,7 +96,7 @@ export function AuthLayout({ children, footer }: { children: ReactNode; footer?:
 export function AuthFooter() {
   return (
     <p>
-      Hackathon build · demo accounts use password <span className="font-mono text-muted">demo1234</span>
+      Hackathon build · seeded demo accounts, one click to fill
     </p>
   )
 }

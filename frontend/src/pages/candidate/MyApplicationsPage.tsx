@@ -86,11 +86,11 @@ export function MyApplicationsPage() {
                     </ol>
                   )}
 
-                  {a.events.length > 0 && (
+                  {(a.events?.length ?? 0) > 0 && (
                     <div className="mt-4 border-t border-line pt-3">
                       <p className="text-micro font-medium uppercase tracking-wider text-faint">History</p>
                       <ul className="mt-1.5 space-y-1">
-                        {a.events.slice(0, 3).map((e) => (
+                        {(a.events ?? []).slice(0, 3).map((e) => (
                           <li key={e.id} className="flex flex-wrap items-center gap-2 text-micro text-muted">
                             <CalendarClock className="h-3 w-3 text-faint" />
                             <span className="text-ink">{STAGE_LABEL[e.to_stage]}</span>
