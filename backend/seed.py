@@ -212,7 +212,7 @@ def seed_real_cvs(db, job) -> None:
         status, err = pdf.classify(raw)
         profile, mode = None, "heuristic"
         if status == "ok":
-            for _attempt in range(3):  # a transient 429 must not leave demo data in fallback mode
+            for _attempt in range(5):  # a transient 429 must not leave demo data in fallback mode
                 profile, mode = extract.extract(raw)
                 if mode == "groq":
                     break
@@ -238,7 +238,7 @@ def seed_real_cvs(db, job) -> None:
         db.commit()
         db.refresh(app)
         a = None
-        for _attempt in range(3):
+        for _attempt in range(5):
             a = assess_svc.run_assessment(db, app, cand.id)
             if a.ai_mode == "groq":
                 break
@@ -265,7 +265,7 @@ def main(reset: bool = False) -> None:
             status, err = pdf.classify(raw)
             profile, mode = None, "heuristic"
             if status == "ok":
-                for _attempt in range(3):  # a transient 429 must not leave demo data in fallback mode
+                for _attempt in range(5):  # a transient 429 must not leave demo data in fallback mode
                     profile, mode = extract.extract(raw)
                     if mode == "groq":
                         break
@@ -290,7 +290,7 @@ def main(reset: bool = False) -> None:
             db.commit()
             db.refresh(app)
             a = None
-            for _attempt in range(3):
+            for _attempt in range(5):
                 a = assess_svc.run_assessment(db, app, cand.id)
                 if a.ai_mode == "groq":
                     break

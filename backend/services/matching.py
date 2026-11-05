@@ -134,6 +134,10 @@ def adjudicate(reqs: list[dict], chunks: list[dict], masked: str) -> tuple[dict[
         if status in ("matched", "partial") and support == "flagged_unverified":
             # A claim we cannot anchor in the resume is downgraded, never trusted.
             status, support = "not_evidenced", "flagged_unverified"
+        if status in ("not_evidenced", "confirmed_absent"):
+            # Keep the response self-consistent: a requirement the model judged unevidenced
+            # must not carry an evidence quote, or the UI shows a contradiction.
+            quote, start, end, support = None, None, None, "flagged_unverified"
         verdicts[rid] = {"status": status, "reason": (row.get("reason") or "")[:400],
                          "quote": quote, "start": start, "end": end,
                          "support": "verified" if support.startswith("verified") else support}

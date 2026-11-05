@@ -58,13 +58,23 @@ def run_assessment(db: Session, app: m.Application, actor_id: int) -> m.Assessme
     similarities = matching.gate_requirements(reqs, chunk_vecs) if chunk_vecs else {}
 
     ai_mode, summary = "degraded", ""
-    try:
-        verdicts, summary = matching.adjudicate(reqs, chunk_rows, masked)
-        ai_mode = "groq"
-    except llm.AIUnavailable as exc:
-        verdicts = {}
-        summary = f"AI adjudication unavailable ({str(exc)[:80]}). Showing semantic similarity only."
-        ai_mode = "degraded"
+    verdicts: dict[int, dict] = {}
+    for attempt in range(2):
+        try:
+            verdicts, summary = matching.adjudicate(reqs, chunk_rows, masked)
+            ai_mode = "groq"
+        except llm.AIUnavailable as exc:
+            verdicts = {}
+            summary = f"AI adjudication unavailable ({str(exc)[:80]}). Showing semantic similarity only."
+            ai_mode = "degraded"
+            break
+        # A resume whose excerpts clearly match a requirement cannot come back with every
+        # requirement unevidenced; that is a bad completion, so ask once more before scoring it.
+        clearly_similar = max(similarities.values() or [0.0]) > 0.5
+        all_empty = verdicts and all(v["status"] in ("not_evidenced", "confirmed_absent")
+                                    for v in verdicts.values())
+        if not (attempt == 0 and clearly_similar and all_empty):
+            break
 
     rows = matching.build_rows(reqs, verdicts, similarities)
     project_chunks = [{"text": c["text"]} for c in chunk_rows if c["section"] == "projects"]
