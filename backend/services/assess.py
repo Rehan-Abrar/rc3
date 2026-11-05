@@ -70,11 +70,19 @@ def run_assessment(db: Session, app: m.Application, actor_id: int) -> m.Assessme
             break
         # A resume whose excerpts clearly match a requirement cannot come back with every
         # requirement unevidenced; that is a bad completion, so ask once more before scoring it.
-        clearly_similar = max(similarities.values() or [0.0]) > 0.5
         all_empty = verdicts and all(v["status"] in ("not_evidenced", "confirmed_absent")
                                     for v in verdicts.values())
-        if not (attempt == 0 and clearly_similar and all_empty):
+        if not (attempt == 0 and all_empty):
             break
+
+    # Still nothing after a retry: do not present that as a confident low score. Fall back to
+    # semantic similarity and label the assessment degraded so the number is never overstated.
+    if ai_mode == "groq" and verdicts and all(
+            v["status"] in ("not_evidenced", "confirmed_absent") for v in verdicts.values()):
+        verdicts = {}
+        ai_mode = "degraded"
+        summary = ("AI returned no evidence for any requirement. Showing semantic similarity only; "
+                   "re-run the assessment or review the résumé manually.")
 
     rows = matching.build_rows(reqs, verdicts, similarities)
     project_chunks = [{"text": c["text"]} for c in chunk_rows if c["section"] == "projects"]

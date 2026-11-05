@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import fitz
+from sqlalchemy import select
 
 import models as m
 from config import BASE_DIR, DATA_DIR
@@ -23,8 +24,9 @@ from services import extract, pdf, skills
 RECRUITER = ("recruiter@hire.dev", "demo1234", "Rehan Abrar")
 CANDIDATES = [
     ("candidate@hire.dev", "demo1234", "Ayesha Khan", "strong"),
-    ("bilal@rc3.dev", "CandidatePass123", "Bilal Ahmed", "partial"),
-    ("sana@rc3.dev", "CandidatePass123", "Sana Iqbal", "adjacent"),
+    ("bilal@rc3.dev", "demo1234", "Bilal Ahmed", "partial"),
+    ("sana@rc3.dev", "demo1234", "Sana Iqbal", "adjacent"),
+    ("hamza@rc3.dev", "demo1234", "Hamza Tariq", "thin"),
 ]
 
 # Real CVs shipped in the repo (../CVs). Seeded onto a second job so the demo shows both a
@@ -80,6 +82,14 @@ Log parser - Python tool that summarised nginx logs.
 
 SKILLS
 Python, Flask, PostgreSQL, Git, Linux
+""",
+    "thin": """Hamza Tariq
+hamza.tariq@example.com | Lahore
+
+Recent computer science graduate. Coursework in programming and databases.
+Built small class projects. Looking for a first role where I can learn.
+
+Skills: Microsoft Word, Excel, team work, communication.
 """,
     "adjacent": """Sana Iqbal
 sana.iqbal@example.com | +92 333 7770011
@@ -247,6 +257,84 @@ def seed_real_cvs(db, job) -> None:
               f"ai={a.ai_mode} confidence={a.confidence}")
 
 
+def seed_candidate(db, job, email, pwd, name, kind) -> None:
+    """Create one synthetic candidate, parse the generated PDF, assess it, and apply."""
+    cand = get_or_create_user(db, email, pwd, name, role="candidate")
+    if db.query(m.Resume).filter_by(candidate_id=cand.id).first():
+        return
+    filename = make_pdf(kind, RESUMES[kind])
+    path = DATA_DIR / "resumes" / filename
+    raw, pages = pdf.extract_text(path)
+    status, err = pdf.classify(raw)
+    profile, mode = None, "heuristic"
+    if status == "ok":
+        for _attempt in range(5):  # a transient 429 must not leave demo data in fallback mode
+            profile, mode = extract.extract(raw)
+            if mode == "groq":
+                break
+            time.sleep(4)
+    r = m.Resume(candidate_id=cand.id, filename=filename, stored_path=filename,
+                 mime="application/pdf", size_bytes=path.stat().st_size,
+                 page_count=pages, raw_text=raw, parse_status=status, parse_error=err,
+                 extracted_json=extract.dumps(profile) if profile else None)
+    db.add(r)
+    db.commit()
+    db.refresh(r)
+    print(f"  parsed {name}: status={status} extract={mode} "
+          f"skills={len((profile or {}).get('skills') or [])}")
+    if status != "ok":
+        return
+    app = m.Application(job_id=job.id, candidate_id=cand.id, resume_id=r.id, stage="submitted")
+    db.add(app)
+    db.flush()
+    db.add(m.StatusEvent(application_id=app.id, actor_id=cand.id, from_stage=None,
+                         to_stage="submitted", reason="Candidate applied"))
+    db.commit()
+    db.refresh(app)
+    a = None
+    for _attempt in range(5):
+        a = assess_svc.run_assessment(db, app, cand.id)
+        if a.ai_mode == "groq":
+            break
+        time.sleep(4)
+    print(f"  assessed {name}: overall={a.overall} skills={a.skills_score} "
+          f"ai={a.ai_mode} confidence={a.confidence}")
+
+
+def seed_demo_flow(db, recruiter, job) -> None:
+    """Leave the demo mid-journey: one shortlisted + interview booked, one private note."""
+    def app_for(name):
+        return db.execute(
+            select(m.Application).join(m.User, m.User.id == m.Application.candidate_id)
+            .where(m.Application.job_id == job.id, m.User.full_name == name)).scalars().first()
+
+    bilal = app_for("Bilal Ahmed")
+    if bilal and bilal.stage == "assessed":
+        bilal.stage = "shortlisted"
+        db.add(m.StatusEvent(application_id=bilal.id, actor_id=recruiter.id, from_stage="assessed",
+                             to_stage="shortlisted", reason="Solid backend evidence, worth a call"))
+        db.commit()
+    if bilal and not db.query(m.Interview).filter_by(application_id=bilal.id).first():
+        start = (datetime.now() + timedelta(days=2)).replace(hour=11, minute=0, second=0,
+                                                             microsecond=0)
+        db.add(m.Interview(application_id=bilal.id, interviewer_id=recruiter.id,
+                           scheduled_at=start, duration_min=45, interview_type="technical",
+                           location="Google Meet", status="scheduled", conflict_flag=False))
+        bilal.stage = "interview"
+        db.add(m.StatusEvent(application_id=bilal.id, actor_id=recruiter.id, from_stage="shortlisted",
+                             to_stage="interview", reason="Technical screen booked"))
+        db.commit()
+        print(f"  interview booked with Bilal Ahmed at {start:%Y-%m-%d %H:%M}")
+
+    sana = app_for("Sana Iqbal")
+    if sana and not db.query(m.Note).filter_by(application_id=sana.id).first():
+        db.add(m.Note(application_id=sana.id, author_id=recruiter.id,
+                      body="Strong Python signal but no production Docker experience. "
+                           "Keep warm for a junior backend req."))
+        db.commit()
+        print("  private note added on Sana Iqbal")
+
+
 def main(reset: bool = False) -> None:
     if reset:
         Base.metadata.drop_all(bind=engine)
@@ -256,47 +344,8 @@ def main(reset: bool = False) -> None:
         rec = get_or_create_user(db, *RECRUITER, role="recruiter")
         job = build_job(db, rec)
         for email, pwd, name, kind in CANDIDATES:
-            cand = get_or_create_user(db, email, pwd, name, role="candidate")
-            if db.query(m.Resume).filter_by(candidate_id=cand.id).first():
-                continue
-            filename = make_pdf(kind, RESUMES[kind])
-            path = DATA_DIR / "resumes" / filename
-            raw, pages = pdf.extract_text(path)
-            status, err = pdf.classify(raw)
-            profile, mode = None, "heuristic"
-            if status == "ok":
-                for _attempt in range(5):  # a transient 429 must not leave demo data in fallback mode
-                    profile, mode = extract.extract(raw)
-                    if mode == "groq":
-                        break
-                    time.sleep(4)
-            r = m.Resume(candidate_id=cand.id, filename=filename, stored_path=filename,
-                         mime="application/pdf", size_bytes=path.stat().st_size,
-                         page_count=pages, raw_text=raw, parse_status=status, parse_error=err,
-                         extracted_json=extract.dumps(profile) if profile else None)
-            db.add(r)
-            db.commit()
-            db.refresh(r)
-            print(f"  parsed {name}: status={status} extract={mode} "
-                  f"skills={len((profile or {}).get('skills') or [])}")
-            if status != "ok":
-                continue
-            app = m.Application(job_id=job.id, candidate_id=cand.id, resume_id=r.id,
-                                stage="submitted")
-            db.add(app)
-            db.flush()
-            db.add(m.StatusEvent(application_id=app.id, actor_id=cand.id, from_stage=None,
-                                 to_stage="submitted", reason="Candidate applied"))
-            db.commit()
-            db.refresh(app)
-            a = None
-            for _attempt in range(5):
-                a = assess_svc.run_assessment(db, app, cand.id)
-                if a.ai_mode == "groq":
-                    break
-                time.sleep(4)
-            print(f"  assessed {name}: overall={a.overall} skills={a.skills_score} "
-                  f"ai={a.ai_mode} confidence={a.confidence}")
+            seed_candidate(db, job, email, pwd, name, kind)
+        seed_demo_flow(db, rec, job)
         print("seed complete")
         print(f"recruiter: {RECRUITER[0]} / {RECRUITER[1]}")
         for email, pwd, name, _k in CANDIDATES:

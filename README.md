@@ -66,13 +66,21 @@ Seed credentials:
 |---|---|---|
 | Recruiter | `recruiter@hire.dev` | `demo1234` |
 | Candidate (strong) | `candidate@hire.dev` | `demo1234` |
-| Candidate (partial) | `bilal@rc3.dev` | `CandidatePass123` |
-| Candidate (adjacent) | `sana@rc3.dev` | `CandidatePass123` |
+| Candidate (partial) | `bilal@rc3.dev` | `demo1234` |
+| Candidate (adjacent) | `sana@rc3.dev` | `demo1234` |
+| Candidate (thin résumé) | `hamza@rc3.dev` | `demo1234` |
 | Candidate - real PDF CV | `rehan@rc3.dev` | `demo1234` |
 | Candidate - real DOCX CV | `ubaid@rc3.dev` | `demo1234` |
 | Candidate - real PDF CV | `mustafa@rc3.dev` | `demo1234` |
 
-The first two match the login page's demo buttons, so one click signs you in.
+**Every password is `demo1234`.** You only need two logins for the demo: the recruiter and
+`candidate@hire.dev`; the rest are there so the ranked list has real competition and so each
+real CV can open its own candidate portal.
+
+The seed leaves the pipeline mid-journey so every screen has content on first load: Bilal is
+shortlisted with an interview booked (check the Interviews page and his candidate timeline),
+Sana has a private recruiter note, and Hamza has a deliberately thin résumé so the
+`insufficient_evidence` path is visible rather than hidden.
 
 Two seeded jobs: **Backend Developer** (synthetic backend candidates) and
 **Product Engineer (React + TypeScript)** (the three real CVs from `CVs/`, one of them DOCX).
@@ -82,13 +90,16 @@ Log in as any candidate to see the same application the recruiter sees, and use
 ## Tests
 
 ```bash
-cd backend && python -m pytest tests/ -q     # 22 passed
-cd backend && python demo_preflight.py       # 36 checks against the running API
+cd backend && python -m pytest tests/ -q     # 26 passed
+cd backend && python demo_preflight.py       # 36 checks: one reviewer journey, end to end
+cd backend && python feature_sweep.py        # 64 checks: every endpoint, incl. error paths
 ```
 
-Covers auth + role/ownership guards, job CRUD/validation, upload rejection, real PDF and DOCX
-parsing with quote-offset integrity, tri-state evidence, scoring arithmetic and determinism, fairness invariance,
-dense-embedding paraphrase separation, and interview conflict 409.
+`pytest` covers auth + role/ownership guards, job CRUD/validation, upload rejection, real PDF and
+DOCX parsing with quote-offset integrity, tri-state evidence, scoring arithmetic and determinism,
+fairness invariance, dense-embedding paraphrase separation, interview conflict 409, and the
+failure modes below. `feature_sweep.py` walks all 64 API paths including the unhappy ones
+(401/403/404/409/415/422) and fails loudly on any 5xx.
 
 ## Demo (2 minutes)
 
@@ -99,6 +110,18 @@ dense-embedding paraphrase separation, and interview conflict 409.
 5. Generate interview questions, edit one.
 6. Schedule the interview; scheduling a second overlapping slot shows the conflict banner.
 7. Dashboard analytics update; talent search returns evidence-backed candidates.
+
+## Failure behaviour (deliberate)
+
+- **Never a silent zero.** If the model returns nothing usable, or claims "no evidence" for a
+  requirement it cannot actually rule out, the assessment degrades (`ai_mode=degraded`, reasons
+  in `summary`) and re-attempts itself on the next read instead of freezing a bad number.
+- **Quotes are proof, not decoration.** A quote only counts as `verified` when
+  `raw_text[start:end] == quote`; otherwise the row is `flagged_unverified` and cannot be `matched`.
+- **Internal reasoning stays internal.** Candidates never see recruiter notes, interview
+  questions, manual overrides or override reasons.
+- **Rate limits are surfaced.** With several Groq credentials the client fails over on 429 and
+  only reports `degraded` once every credential is exhausted.
 
 ## Known limits
 

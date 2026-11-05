@@ -150,7 +150,6 @@ def extract_requirements(body: schemas.ExtractRequirementsIn,
 
 
 @router.get("/{job_id}/talent-pool")
-@router.get("/{job_id}/talent-pool")
 def talent_pool(job_id: int, db: Session = Depends(get_db),
                 recruiter: m.User = Depends(require_recruiter)):
     """Previously reviewed candidates not yet applied to this job (R31)."""

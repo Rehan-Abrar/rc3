@@ -88,9 +88,11 @@ def regenerate(app_id: int, qid: int, db: Session = Depends(get_db),
     old = db.get(m.InterviewQuestion, qid)
     if not old or old.application_id != app_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Question not found")
+    # Generate first: if the model is unavailable the recruiter keeps the existing question.
+    created = generate(app_id, schemas.GenerateQuestionsIn(per_difficulty=1), db, recruiter)
     db.delete(old)
     db.commit()
-    return generate(app_id, schemas.GenerateQuestionsIn(per_difficulty=1), db, recruiter)
+    return created
 
 
 @router.get("/applications/{app_id}/questions")

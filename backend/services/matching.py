@@ -157,6 +157,11 @@ def _skills_score(rows: list[dict]) -> float:
     return 100.0 * num / den if den else 0.0
 
 
+def skills_score(rows: list[dict]) -> float:
+    """Public wrapper: weighted skills score for already-built rows."""
+    return _skills_score(rows)
+
+
 def _experience_score(profile: dict, reqs: list[dict]) -> float | None:
     needed = [r["min_years"] for r in reqs if r.get("min_years")]
     if not needed:

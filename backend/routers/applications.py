@@ -5,11 +5,21 @@ from sqlalchemy.orm import Session
 import models as m
 import schemas
 import serializers as S
+from models import utcnow
 from db import get_db
 from security import current_user, require_candidate, require_recruiter
 from services import assess as assess_svc
 
 router = APIRouter(prefix="/applications", tags=["applications"])
+
+
+def _age_seconds(when) -> float:
+    """Seconds since `when`. SQLite hands back naive datetimes, so normalise before subtracting."""
+    if when is None:
+        return 1e9
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=utcnow().tzinfo)
+    return (utcnow() - when).total_seconds()
 
 RECRUITER_STAGES = {"recruiter_review", "shortlisted", "rejected", "interview", "selected"}
 ALLOWED = {
@@ -97,6 +107,8 @@ def application_detail(app_id: int, db: Session = Depends(get_db),
         events = db.scalars(select(m.StatusEvent).where(m.StatusEvent.application_id == a.id)
                             .order_by(m.StatusEvent.id)).all()
         item = S.application(a)
+        # A recruiter's manual override is internal reasoning, not something the candidate sees.
+        item.update({"override_score": None, "override_reason": None})
         item.update({"job": S.job_summary(db, job),
                      "assessment": assess_svc.assessment_payload(db, a),
                      "questions": [], "interviews": [], "notes": [],
@@ -222,9 +234,13 @@ def assess(app_id: int, force: bool = False, db: Session = Depends(get_db),
         if not job or job.recruiter_id != user.id:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your vacancy")
     # Cached by default: an assessment costs two model calls, so only recompute on request.
+    # A degraded result is not cached forever, though: retry it (rate-limited to once every
+    # 30s) so a transient AI outage does not leave the demo stuck on fallback numbers.
     existing = db.scalar(select(m.Assessment).where(m.Assessment.application_id == a.id))
     if existing is not None and not force:
-        return assess_svc.assessment_payload(db, a)
+        stale_degraded = existing.ai_mode != "groq" and _age_seconds(existing.created_at) > 30
+        if not stale_degraded:
+            return assess_svc.assessment_payload(db, a)
     assess_svc.run_assessment(db, a, user.id)
     return assess_svc.assessment_payload(db, a)
 

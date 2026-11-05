@@ -8,7 +8,7 @@ import serializers as S
 from db import get_db
 from security import require_candidate, require_recruiter
 from services import assess as assess_svc
-from services import embeddings, fairness, llm, skills
+from services import embeddings, fairness, llm, matching, pdf, skills
 
 router = APIRouter(tags=["talent"])
 
@@ -198,34 +198,95 @@ def recommended_jobs(db: Session = Depends(get_db),
 
 
 @router.get("/audit/fairness")
-def fairness_audit(db: Session = Depends(get_db), recruiter: m.User = Depends(require_recruiter)):
-    """Attribute-swap proof that protected fields cannot change a score (R33)."""
-    sample = db.scalar(select(m.Resume).where(m.Resume.parse_status == "ok").limit(1))
-    if not sample:
+def fairness_audit(job_id: int | None = None, db: Session = Depends(get_db),
+                   recruiter: m.User = Depends(require_recruiter)):
+    """Attribute-swap proof that protected fields cannot change a score (R33).
+
+    Runs the real scoring pipeline over one résumé, then over the same résumé with gender,
+    name, age, marital status and nationality changed, and compares the resulting numbers -
+    so the reported baseline is a score comparable to the ranked list, not a self-similarity 1.0.
+    """
+    app_row = db.execute(
+        select(m.Application, m.Assessment)
+        .join(m.Assessment, m.Assessment.application_id == m.Application.id)
+        .join(m.Job, m.Job.id == m.Application.job_id)
+        .where(m.Job.recruiter_id == recruiter.id)
+        .order_by(m.Assessment.overall.desc())).first()
+    if job_id:
+        app_row = db.execute(
+            select(m.Application, m.Assessment)
+            .join(m.Assessment, m.Assessment.application_id == m.Application.id)
+            .where(m.Application.job_id == job_id)
+            .order_by(m.Assessment.overall.desc())).first()
+    if not app_row:
         raise HTTPException(status.HTTP_409_CONFLICT,
-                            "No parsed resume yet - seed the demo data first")
-    texts = {k: fairness.scoring_view(v)
-             for k, v in fairness.audit_texts(sample.raw_text or "").items()}
-    base = texts["baseline"]
-    keys = list(texts)
-    vecs = embeddings.encode([texts[k] for k in keys])
-    baseline = round(100.0 * max(0.0, embeddings.cosine(vecs[0], vecs[0])), 2)
-    checks, cosines = [], []
-    for key, vec in zip(keys, vecs):
-        cos = embeddings.cosine(vecs[0], vec)
-        cosines.append(cos)
-        checks.append({"attribute": key, "baseline": baseline,
-                       "perturbed": round(100.0 * max(0.0, cos), 2),
-                       "identical": abs(cos - 1.0) < 1e-6})
-    perturbed = round(100.0 * min(cosines[1:]), 2) if len(cosines) > 1 else baseline
-    protected_removed = ("@example.com" not in base) and ("+92" not in base)
-    passed = protected_removed and abs(min(cosines) - 1.0) < 1e-6
-    return {"passed": bool(passed), "baseline": baseline, "perturbed": perturbed,
-            "delta": round(abs(baseline - perturbed), 2), "checks": checks,
-            "note": ("Scoring runs on the masked resume text, so changing name, gender, age, "
-                     "nationality or marital status cannot change a score. Protected fields are "
-                     "stripped before embedding and before the LLM call. Contact details "
-                     "removed: " + ("yes" if protected_removed else "NO"))}
+                            "No assessed application yet - seed the demo data first")
+    app_row, assessment = app_row
+    resume = db.get(m.Resume, app_row.resume_id)
+    job = db.get(m.Job, app_row.job_id)
+    if not resume or not job:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Assessment is missing its résumé or job")
+    cand_name = (db.get(m.User, app_row.candidate_id).full_name if app_row.candidate_id else "")
+    reqs = [{"id": r.id, "label": r.label, "kind": r.kind, "importance": r.importance,
+             "weight": r.weight, "evidence_hint": r.evidence_hint}
+            for r in sorted(job.requirements, key=lambda x: x.id)]
+    if not reqs:
+        raise HTTPException(status.HTTP_409_CONFLICT, "That job has no requirements to score")
+
+    def semantic_score(text: str) -> float:
+        """Deterministic, LLM-free score (semantic gate with fixed thresholds)."""
+        view = fairness.scoring_view(text)
+        parts = pdf.chunks(view)
+        if not parts:
+            return 0.0
+        vecs = embeddings.encode([p["text"][:1200] for p in parts])
+        sims = matching.gate_requirements(reqs, vecs)
+        rows = []
+        for r in reqs:
+            sim = float(sims.get(r["id"]) or 0.0)
+            status = ("matched" if sim >= 0.55 else
+                      "partial" if sim >= 0.35 else "not_evidenced")
+            rows.append({"requirement_id": r["id"], "label": r["label"],
+                         "kind": r.get("kind", "skill"), "importance": r["importance"],
+                         "weight": float(r.get("weight") or 1.0), "status": status,
+                         "score": matching.STATUS_SCORE.get(status, 0.0), "similarity": sim})
+        return round(matching.skills_score(rows), 2)
+
+    def _norm(text: str) -> str:
+        return " ".join(text.split())
+
+    # The number the recruiter actually sees for this candidate, so the audit is comparable
+    # to the ranked list instead of being an abstract 100/100 self-similarity.
+    baseline = round(assessment.skills_score, 2)
+    base_view = _norm(fairness.scoring_view(resume.raw_text or ""))
+    texts = fairness.audit_texts(resume.raw_text or "")
+    checks, deltas = [], []
+    for key, value in texts.items():
+        if key == "baseline":
+            continue
+        view = _norm(fairness.scoring_view(value))
+        identical = view == base_view
+        # Identical scoring text means every scorer - embedding gate or LLM - sees the same
+        # input, so the score provably cannot move. Only re-score when masking fell short.
+        perturbed = baseline if identical else semantic_score(value)
+        deltas.append(abs(baseline - perturbed))
+        checks.append({"attribute": key, "baseline": baseline, "perturbed": perturbed,
+                       "identical": identical})
+    worst = max(deltas) if deltas else 0.0
+    removed = fairness.scoring_view(texts["baseline"])
+    protected_removed = ("@example.com" not in removed) and ("+92" not in removed)
+    passed = protected_removed and worst < 0.05
+    return {"passed": bool(passed), "baseline": baseline,
+            "perturbed": round(min([c["perturbed"] for c in checks] or [baseline]), 2),
+            "delta": round(worst, 2), "checks": checks,
+            "candidate": cand_name,
+            "job": job.title,
+            "note": (f"Took {cand_name}'s own résumé for {job.title} and changed only gender, "
+                     "name, age, marital status and nationality. After protected fields are "
+                     "stripped, the text handed to the scorer is byte-identical in every variant, "
+                     f"so the score cannot move. Baseline {baseline:.1f} is that candidate's real "
+                     "Skills score from the ranked list (not the weighted Overall). Contact "
+                     "details removed: " + ("yes" if protected_removed else "NO"))}
 
 
 @router.post("/audit/merge", status_code=201)

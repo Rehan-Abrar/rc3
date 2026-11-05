@@ -1,7 +1,7 @@
 """Scoring, parsing, fairness and conflict tests. Offline: no LLM required."""
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -144,12 +144,12 @@ def test_interview_conflict_returns_409():
         db.close()
     client = TestClient(app)
     h = {"Authorization": f"Bearer {token}"}
-    start = (datetime.utcnow() + timedelta(days=3)).strftime("%Y-%m-%dT%H:00:00Z")
+    start = (datetime.now(timezone.utc) + timedelta(days=3)).strftime("%Y-%m-%dT%H:00:00Z")
     body = {"application_id": app_id, "scheduled_at": start, "duration_min": 60,
             "interviewer_id": rec_id, "interview_type": "technical"}
     first = client.post("/api/interviews", headers=h, json=body)
     assert first.status_code == 201, first.text
-    body2 = dict(body, scheduled_at=(datetime.utcnow() + timedelta(days=3))
+    body2 = dict(body, scheduled_at=(datetime.now(timezone.utc) + timedelta(days=3))
                  .strftime("%Y-%m-%dT%H:30:00Z"))
     second = client.post("/api/interviews", headers=h, json=body2)
     assert second.status_code == 409
