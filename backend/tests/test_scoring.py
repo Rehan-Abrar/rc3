@@ -154,3 +154,23 @@ def test_interview_conflict_returns_409():
     second = client.post("/api/interviews", headers=h, json=body2)
     assert second.status_code == 409
     assert "conflict_with" in second.json()["detail"]
+
+
+def test_degraded_mode_is_graceful_and_labelled():
+    """AI down must not crash: extraction falls back and says so honestly."""
+    from services import llm
+
+    def boom(*args, **kwargs):
+        raise llm.AIUnavailable("simulated outage")
+
+    orig = llm.chat_json
+    llm.chat_json = boom
+    try:
+        profile, ai_mode = extract.extract(SAMPLE)
+        assert ai_mode in ("degraded", "heuristic"), ai_mode
+        assert ai_mode != "groq"
+        assert profile["email"] == "ayesha.khan@example.com"
+        assert profile["skills"], "heuristic scan still finds skills"
+        assert all(s["support"] != "verified" for s in profile["skills"])
+    finally:
+        llm.chat_json = orig
