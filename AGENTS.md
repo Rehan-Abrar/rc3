@@ -6,10 +6,10 @@
 
 Two people, two laptops, both Windows with Git Bash.
 
-| Human | GitHub login | Agent |
-|---|---|---|
-| Rehan Abrar (repo owner) | `@Rehan-Abrar` | OpenCode |
-| Ubaid Ur Rehmaan Dar | `@UbaidUrRehmaanDar` | Freebuff |
+| Human | GitHub login | Role | Agent |
+|---|---|---|---|
+| Ubaid Ur Rehmaan Dar | `@UbaidUrRehmaanDar` | **Agent A** — pages, components, styling, responsive UI | Freebuff |
+| Rehan Abrar (repo owner) | `@Rehan-Abrar` | **Agent B** — services, logic, state, validation, tests | OpenCode |
 
 - Board issue: **#1** (`BOARD_ISSUE` unset = 1). Only set `BOARD_ISSUE` if the board issue number changes.
 - Requirements on both laptops: `bash`, `git`, and the GitHub CLI (`gh`) logged in once via `gh auth login`.
@@ -78,8 +78,8 @@ Provisional until the problem statement is released and humans confirm it. The c
 
 | Area | Owner (GitHub login) | Folders |
 |---|---|---|
-| Pages, components, styling, responsive UI | `@Rehan-Abrar` (Agent A, OpenCode) | `src/pages/`, `src/components/`, `src/styles/`, layout/theme files |
-| Services, application logic, state, validation, tests | `@UbaidUrRehmaanDar` (Agent B, Freebuff) | `src/services/`, `src/lib/`, `src/state/`, `src/validation/`, `tests/` |
+| Pages, components, styling, responsive UI | `@UbaidUrRehmaanDar` (Agent A, Freebuff) | `src/pages/`, `src/components/`, `src/styles/`, layout/theme files |
+| Services, application logic, state, validation, tests | `@Rehan-Abrar` (Agent B, OpenCode) | `src/services/`, `src/lib/`, `src/state/`, `src/validation/`, `tests/` |
 | Shared files and config: package manifests, lockfiles, build/lint config, CI, `.env*`, README, `AGENTS.md`, `tools/board`, `TEAM_SETUP.md` | **Humans only** | `package.json`, `package-lock.json`, `pnpm-lock.yaml`, `vite.config.*`, `tsconfig*.json`, `.eslintrc*`, `.github/workflows/`, `.env*` |
 
 Rules for the table:

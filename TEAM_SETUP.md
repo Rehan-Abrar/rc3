@@ -97,8 +97,8 @@ Non-negotiables from it:
 
 - Run `bash tools/board unread` at task start, before every commit, and after every merge.
 - Tag every post with one category: `[CONTRACT]`, `[BLOCKER]`, `[DONE]`, `[HANDOFF]`, `[WARNING]`.
-- You (Agent B, Freebuff) own services, application logic, state, validation and tests.
-  Rehan (Agent A, OpenCode) owns pages, components, styling and responsive UI.
+- You are Agent A (Freebuff, `@UbaidUrRehmaanDar`) and own pages, components, styling and responsive UI.
+  Rehan (Agent B, OpenCode, `@Rehan-Abrar`) owns services, application logic, state, validation and tests.
 - Shared files and config (`package.json`, lockfiles, build/lint config, CI, `.env*`, `AGENTS.md`) are **human-controlled**. Ask on the board, do not edit them.
 - Do not install dependencies or add a framework unless a human says so.
 - The competition problem is not released. **Do not start building the app.**
