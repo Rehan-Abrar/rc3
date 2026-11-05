@@ -1,3 +1,5 @@
+> **Read HACKATHON_MODE.md before starting any task. Its execution-speed rules apply alongside the team communication and ownership rules below.**
+
 # Team rules for every agent
 
 ## 0. This team
