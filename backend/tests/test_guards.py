@@ -169,3 +169,41 @@ def test_regenerate_keeps_the_old_question_when_ai_is_down(stack, monkeypatch):
     assert failed.status_code == 503
     still_there = stack["client"].get(f"/api/applications/{stack['app']}/questions", headers=h)
     assert [q["id"] for q in still_there.json()] == [qid], "the question was destroyed by a 503"
+
+
+def test_genuinely_unrelated_resume_keeps_groq_mode():
+    """A CV that really has none of the required skills is a legitimate 'no evidence' answer.
+
+    The degradation guard must not fire there - otherwise honest zeros would look like outages.
+    """
+    tag = uuid.uuid4().hex[:8]
+    client = TestClient(app)
+    rec = client.post("/api/auth/register", json={
+        "email": f"unrelated.rec.{tag}@test.dev", "password": "Password123",
+        "full_name": "Unrelated Rec", "role": "recruiter"}).json()
+    cand = client.post("/api/auth/register", json={
+        "email": f"unrelated.cand.{tag}@test.dev", "password": "Password123",
+        "full_name": "Unrelated Cand", "role": "candidate"}).json()
+    rh, ch = _auth(rec["token"]), _auth(cand["token"])
+    job = client.post("/api/jobs", headers=rh, json={
+        "title": f"Kubernetes Platform Engineer {tag}",
+        "description": "Own our Kubernetes clusters.",
+        "requirements": [{"label": "Kubernetes", "importance": "required"},
+                         {"label": "Terraform", "importance": "required"}]}).json()
+    up = client.post("/api/resumes", headers=ch,
+                     files={"file": ("adjacent.pdf", _pdf_bytes(SAMPLE), "application/pdf")})
+    rid = up.json()["resume"]["id"]
+    app_id = client.post("/api/applications", headers=ch,
+                         json={"job_id": job["id"], "resume_id": rid}).json()["id"]
+
+    reqs = _requirements(app_id)
+    import services.matching as matching_mod
+    original = matching_mod.adjudicate
+    matching_mod.adjudicate = lambda *_a, **_k: _verdicts(reqs, "not_evidenced")
+    try:
+        body = client.post(f"/api/applications/{app_id}/assess?force=true", headers=rh).json()
+    finally:
+        matching_mod.adjudicate = original
+    assert body["ai_mode"] == "groq", body
+    assert body["skills"] == 0.0
+    assert body["insufficient_evidence"] is True
