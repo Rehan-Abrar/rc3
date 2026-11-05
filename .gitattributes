@@ -1,0 +1,4 @@
+# Keep shell scripts LF so they run under Git Bash on Windows (core.autocrlf=true
+# would otherwise check them out with CRLF and break `bash tools/board`).
+tools/board text eol=lf
+*.sh text eol=lf
