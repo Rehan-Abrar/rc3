@@ -6,7 +6,7 @@ import { useAsync } from '../../lib/useAsync'
 import { Badge, Button, Card, CardHeader, EmptyState, ErrorState, Skeleton, StatCard } from '../../components/ui/core'
 import { PageHeader } from '../../components/layout/AppShell'
 import { useToast } from '../../components/ui/toast'
-import { STAGE_LABEL, formatDate, formatRelative, formatSalary, jobStatusTone, stageTone } from '../../lib/utils'
+import { STAGE_LABEL, employmentLabel, formatDate, formatRelative, formatSalary, jobStatusTone, stageTone } from '../../lib/utils'
 import { ScoreNumber, scoreBandLabel } from '../../components/ui/score'
 
 export function JobDetailPage() {
@@ -53,7 +53,7 @@ export function JobDetailPage() {
         meta={
           <>
             <Badge tone={jobStatusTone(j.status)} dot>{j.status === 'open' ? 'Open' : 'Closed'}</Badge>
-            <Badge tone="neutral">{j.employment_type}</Badge>
+            <Badge tone="neutral">{employmentLabel(j.employment_type)}</Badge>
             <Badge tone="neutral">{formatSalary(j.salary_min, j.salary_max)}</Badge>
             <Badge tone="neutral">Updated {formatRelative(j.updated_at)}</Badge>
           </>

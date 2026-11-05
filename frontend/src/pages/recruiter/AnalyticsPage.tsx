@@ -219,7 +219,7 @@ export function AnalyticsPage() {
                   <li key={g.skill} className="px-4 py-2.5">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-xs text-ink">{g.skill}</p>
-                      <span className="text-micro text-muted tnum">{g.count} applicants</span>
+                      <span className="font-mono text-[10px] text-muted tnum">{g.count} {g.count === 1 ? 'applicant' : 'applicants'}</span>
                     </div>
                     <div className="mt-1.5 h-1.5 overflow-hidden bg-elevated">
                       <div className="h-full bg-warn/70" style={{ width: `${(g.count / max) * 100}%` }} />

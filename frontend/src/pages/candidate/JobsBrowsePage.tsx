@@ -7,7 +7,7 @@ import { useAsync } from '../../lib/useAsync'
 import { Badge, Button, Card, CardHeader, Dialog, EmptyState, ErrorState, Input, Skeleton } from '../../components/ui/core'
 import { PageHeader } from '../../components/layout/AppShell'
 import { useToast } from '../../components/ui/toast'
-import { formatSalary } from '../../lib/utils'
+import { employmentLabel, formatSalary } from '../../lib/utils'
 
 export function JobsBrowsePage() {
   const { push } = useToast()
@@ -83,7 +83,7 @@ export function JobsBrowsePage() {
                   </div>
                   <h3 className="mt-1.5 font-display text-[17px] font-medium leading-snug text-ink">{j.title}</h3>
                   <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
-                    {j.department} · {j.employment_type}
+                    {j.department} · {employmentLabel(j.employment_type)}
                   </p>
                   <p className="mt-2 flex flex-wrap items-center gap-3 body-copy text-[11px] text-muted">
                     <span className="flex items-center gap-1"><MapPin className="h-3 w-3 text-faint" /> {j.location}</span>
