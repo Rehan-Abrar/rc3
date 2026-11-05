@@ -159,7 +159,8 @@ def merge(body: schemas.MergeIn, db: Session = Depends(get_db),
         r.candidate_id = keep.id
     db.delete(dupe)
     db.commit()
-    return {"kept": keep.id, "merged": body.merge_id, "applications_moved": moved}
+    return {"ok": True, "kept": keep.id, "merged": body.merge_id,
+            "applications_moved": moved}
 
 
 @router.get("/candidates/jobs/recommended")

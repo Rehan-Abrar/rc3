@@ -45,9 +45,11 @@ contracts/  types.ts + fixtures: the frozen API contract both sides build agains
 # 1. backend
 cd backend
 cp .env.example .env          # add GROQ1 (and optionally GROQ2)
-python -m pip install fastapi uvicorn sqlalchemy pymupdf scikit-learn numpy openai bcrypt PyJWT python-multipart model2vec
-python seed.py --reset        # 3 real PDF resumes, 1 job, 3 assessments
-python -m uvicorn main:app --port 8000
+./run.sh                      # installs requirements.txt, seeds on first run, serves :8000
+# or manually:
+#   python -m pip install -r requirements.txt
+#   python seed.py --reset      # 3 real PDF resumes, 1 job, 3 assessments
+#   python -m uvicorn main:app --port 8000
 
 # 2. frontend (second terminal)
 cd frontend
