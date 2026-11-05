@@ -1,2 +1,9 @@
+*.db
+*.pyc
 .board/
 .env
+__pycache__/
+backend/.env
+backend/data/
+frontend/dist/
+frontend/node_modules/
