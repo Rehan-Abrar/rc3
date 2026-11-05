@@ -79,11 +79,11 @@ export function ResumePage() {
               onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
               onDragLeave={() => setDragging(false)}
               onDrop={(e) => { e.preventDefault(); setDragging(false); onFiles(e.dataTransfer.files) }}
-              className={`flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-8 text-center transition-colors ${
+              className={`flex flex-col items-center justify-center gap-2 border border-dashed px-4 py-8 text-center transition-colors ${
                 dragging ? 'border-accent bg-accent/10' : 'border-line bg-canvas/40'
               }`}
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-elevated text-faint">
+              <span className="flex h-10 w-10 items-center justify-center border border-line bg-canvas text-faint">
                 <Upload className="h-4 w-4" />
               </span>
               <p className="text-xs text-ink">Drag a PDF or DOCX here, or</p>
@@ -101,11 +101,11 @@ export function ResumePage() {
             </div>
 
             {error && (
-              <div className="mt-3 rounded-lg border border-bad/30 bg-bad/10 px-3 py-2 text-xs text-bad" role="alert">{error}</div>
+              <div className="mt-3 border border-bad/30 bg-bad/5 px-3 py-2 text-xs text-bad" role="alert">{error}</div>
             )}
 
             {resume && (
-              <div className="mt-3 rounded-lg border border-line bg-canvas/50 p-3">
+              <div className="mt-3 border border-line bg-canvas p-3">
                 <p className="flex items-center gap-2 text-sm text-ink"><FileText className="h-4 w-4 text-faint" /> {resume.filename}<a href={resumeFileUrl(resume.id)} target="_blank" rel="noreferrer" className="ml-auto text-micro font-medium text-accent hover:underline">View file</a></p>
                 <p className="mt-0.5 text-micro text-faint">
                   {resume.page_count} page(s) · {bytes(resume.size_bytes)} · uploaded {formatDate(resume.created_at, true)}
@@ -139,9 +139,8 @@ export function ResumePage() {
             <div className="space-y-3 p-4">
               <div className="flex flex-wrap gap-1.5">
                 {skills.map((s) => (
-                  <span key={s} className="chip border-good/25 bg-good/10 text-good">
-                    <ShieldCheck className="h-3 w-3" /> {s}
-                    <span className="text-good/70">quoted</span>
+                  <span key={s} className="chip border-line bg-surface normal-case tracking-normal text-ink">
+                    <ShieldCheck className="h-3 w-3 text-good" /> {s}
                   </span>
                 ))}
                 {skills.length === 0 && <p className="text-xs text-faint">No skills extracted yet. Add the important ones manually.</p>}
@@ -156,7 +155,7 @@ export function ResumePage() {
                         key={s}
                         type="button"
                         onClick={() => setSkillsDraft((prev) => prev.filter((x) => x !== s))}
-                        className="chip border-accent/30 bg-accent/10 text-accent"
+                        className="chip border-accent/30 bg-elevated normal-case tracking-normal text-accent"
                         aria-label={`Remove ${s}`}
                       >
                         {s} <X className="h-3 w-3" />
@@ -181,20 +180,22 @@ export function ResumePage() {
                   </Field>
                 </div>
                 <Button size="sm" onClick={addSkill} disabled={!newSkill.trim()}><Plus className="h-3.5 w-3.5" /> Add</Button>
-                <Button size="sm" variant="primary" onClick={saveSkills} loading={saving} disabled={skillsDraft.length === 0}>
+                <Button size="sm" variant={skillsDraft.length > 0 ? 'primary' : 'secondary'} onClick={saveSkills} loading={saving} disabled={skillsDraft.length === 0}>
                   <Check className="h-3.5 w-3.5" /> Save corrections
                 </Button>
               </div>
 
-              <div className="rounded-lg border border-line bg-canvas/40 p-2.5">
-                <p className="text-micro font-medium uppercase tracking-wider text-faint">Extracted profile</p>
-                <p className="mt-1 text-xs text-muted">{resume.extracted?.name ?? '—'} · {resume.extracted?.email ?? '—'}</p>
-                {resume.extracted?.links?.[0] && <p className="text-micro text-faint">{resume.extracted.links[0]}</p>}
+              <div className="border border-line bg-canvas p-2.5">
+                <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">[ Extracted profile ]</p>
+                <p className="mt-1 body-copy text-xs text-ink">{resume.extracted?.name ?? '—'}</p>
+                <p className="body-copy text-xs text-muted">{resume.extracted?.email ?? '—'}</p>
+                {resume.extracted?.links?.[0] && <p className="mt-0.5 truncate body-copy text-[11px] text-accent">{resume.extracted.links[0]}</p>}
               </div>
 
-              <details className="rounded-lg border border-line bg-canvas/40 p-2.5">
-                <summary className="flex cursor-pointer items-center gap-1.5 text-xs text-muted">
+              <details className="border border-line bg-canvas p-2.5">
+                <summary className="flex cursor-pointer list-none items-center gap-1.5 body-copy text-xs text-muted">
                   <RefreshCw className="h-3 w-3" /> View extracted resume text
+                  <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.08em] text-faint">expand</span>
                 </summary>
                 <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded bg-canvas p-2 text-micro leading-relaxed text-muted">
                   {resume.raw_text}

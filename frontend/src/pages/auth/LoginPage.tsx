@@ -49,8 +49,9 @@ export function LoginPage() {
 
   return (
     <AuthLayout footer={<AuthFooter />}>
-      <h2 className="text-2xl font-semibold tracking-tight">Sign in</h2>
-      <p className="mt-1 text-sm text-muted">Continue to your hiring workspace.</p>
+      <p className="bracket-blue">[ Sign in ]</p>
+      <h2 className="display mt-2 text-[32px] leading-[1.1]">Welcome back.</h2>
+      <p className="mt-1.5 body-copy text-sm text-muted">Continue to your hiring workspace.</p>
 
       <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
         <Field label="Work email" htmlFor="email">
@@ -76,7 +77,7 @@ export function LoginPage() {
         </Field>
 
         {error && (
-          <div className="flex items-start gap-2 rounded-lg border border-bad/30 bg-bad/10 px-3 py-2 text-xs text-bad" role="alert">
+          <div className="flex items-start gap-2 border border-bad/30 bg-bad/5 px-3 py-2 body-copy text-xs text-bad" role="alert">
             <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>{error}</span>
           </div>
@@ -88,21 +89,21 @@ export function LoginPage() {
       </form>
 
       <div className="mt-6">
-        <p className="text-micro font-medium uppercase tracking-wider text-faint">Demo accounts</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-faint">[ Demo accounts ]</p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {DEMOS.map((d) => (
               <button
                 key={d.email}
                 type="button"
                 onClick={() => useDemo(d)}
-                className="rounded-lg border border-line bg-surface px-3 py-2 text-left transition-colors hover:border-faint/60 hover:bg-elevated/60"
+                className="border border-line bg-surface px-3 py-2 text-left transition-colors hover:border-accent/40 hover:bg-canvas"
               >
-                <p className="text-xs font-medium text-ink">{d.role}</p>
-                <p className="text-micro text-faint">{d.email}</p>
+                <p className="font-ui text-[10px] font-medium uppercase tracking-[0.08em] text-accent">{d.role}</p>
+                <p className="mt-0.5 truncate body-copy text-[11px] text-muted">{d.email}</p>
               </button>
             ))}
           </div>
-        <p className="mt-2 text-micro text-faint">
+        <p className="mt-2 body-copy text-[11px] leading-snug text-faint">
           Seeded accounts — click a card to fill the form, then sign in.
         </p>
       </div>

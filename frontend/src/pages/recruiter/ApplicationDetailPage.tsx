@@ -133,8 +133,8 @@ export function ApplicationDetailPage() {
         }
       />
 
-      <div className="grid gap-4 xl:grid-cols-[1.55fr_1fr]">
-        <div className="space-y-4">
+      <div className="grid items-start gap-4 xl:grid-cols-[1.55fr_1fr]">
+        <div className="min-w-0 space-y-4">
           <Card>
             <CardHeader
               title="Evidence-based assessment"
@@ -167,21 +167,21 @@ export function ApplicationDetailPage() {
               <>
                 <div className="grid gap-0 md:grid-cols-[240px_1fr]">
                   <div className="border-b border-line px-4 py-3 md:border-b-0 md:border-r">
-                    <p className="mb-2 text-micro font-medium uppercase tracking-wider text-faint">Weighted breakdown</p>
+                    <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.1em] text-faint">[ Weighted breakdown ]</p>
                     <ScoreBreakdown score={assessment} />
                     <div className="mt-3 space-y-1.5">
                       <ModeBadges score={assessment} />
                     </div>
                     {assessment.insufficient_evidence && (
-                      <p className="mt-2 rounded-md border border-warn/30 bg-warn/10 px-2.5 py-1.5 text-micro leading-relaxed text-warn">
+                      <p className="mt-2 border border-warn/30 bg-warn/5 px-2.5 py-1.5 body-copy text-[11px] leading-relaxed text-warn">
                         Too little verified evidence for a precise score. Treat this as a band, not a verdict.
                       </p>
                     )}
                   </div>
                   <div className="px-4 py-3">
-                    <p className="text-micro font-medium uppercase tracking-wider text-faint">Why this candidate</p>
-                    <p className="mt-1 text-sm leading-relaxed text-muted">{assessment.summary}</p>
-                    {assessment.explanation && <p className="mt-2 text-xs leading-relaxed text-faint">{assessment.explanation}</p>}
+                    <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">[ Why this candidate ]</p>
+                    <p className="mt-1.5 body-copy text-sm leading-relaxed text-ink/85">{assessment.summary}</p>
+                    {assessment.explanation && <p className="mt-2 body-copy text-xs leading-relaxed text-muted">{assessment.explanation}</p>}
                     <div className="mt-3 flex items-center gap-1.5 text-micro text-faint">
                       <ShieldCheck className="h-3 w-3 text-good" /> Every claim is tied to a resume excerpt
                       <span aria-hidden>·</span>
@@ -191,8 +191,8 @@ export function ApplicationDetailPage() {
                 </div>
                 <div className="border-t border-line">
                   <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-2">
-                    <p className="text-micro font-medium uppercase tracking-wider text-faint">Requirement evidence</p>
-                    <p className="text-micro text-faint">
+                    <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">[ Requirement evidence ]</p>
+                    <p className="body-copy text-[10px] leading-relaxed text-faint">
                       % = semantic similarity of the resume excerpt to the requirement · open a row for the exact sentence
                     </p>
                   </div>
@@ -211,36 +211,36 @@ export function ApplicationDetailPage() {
           </Card>
         </div>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <Card>
             <CardHeader title="Candidate" />
-            <div className="space-y-2 px-4 py-3 text-xs">
+            <div className="space-y-2 px-4 py-3 body-copy text-xs">
               <p className="flex items-center gap-2 text-muted">
                 <Mail className="h-3.5 w-3.5 text-faint" />
                 <a href={`mailto:${a.candidate.email}`} className="hover:text-ink">{a.candidate.email}</a>
               </p>
               {a.resume && (
-                <div className="rounded-lg border border-line bg-canvas/50 p-2.5">
+                <div className="border border-line bg-canvas p-2.5">
                   <p className="flex items-center gap-2 text-ink">
                     <FileText className="h-3.5 w-3.5 text-faint" /> {a.resume.filename}
                     <a
                       href={resumeFileUrl(a.resume.id)}
                       target="_blank"
                       rel="noreferrer"
-                      className="ml-auto text-micro font-medium text-accent hover:underline"
+                      className="ml-auto font-ui text-[10px] font-medium uppercase tracking-[0.06em] text-accent hover:underline"
                     >
                       View file
                     </a>
                   </p>
-                  <p className="mt-0.5 text-micro text-faint">
-                    {a.resume.page_count} page(s) · {bytes(a.resume.size_bytes)} · parse {a.resume.parse_status}
+                  <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-faint">
+                    {a.resume.page_count}p · {bytes(a.resume.size_bytes)} · parse {a.resume.parse_status}
                   </p>
                   {a.resume.parse_status !== 'ok' && (
                     <p className="mt-1 text-micro text-warn">{a.resume.parse_error ?? 'Extraction needs a manual correction.'}</p>
                   )}
                 </div>
               )}
-              <p className="text-micro text-faint">
+              <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-faint">
                 Application #{a.id} · updated {formatDate(a.updated_at, true)}
               </p>
             </div>
@@ -253,9 +253,9 @@ export function ApplicationDetailPage() {
                 <p className="text-xs text-faint">No notes yet.</p>
               ) : (
                 a.notes.map((n) => (
-                  <div key={n.id} className="rounded-lg border border-line bg-canvas/50 p-2.5">
+                  <div key={n.id} className="border border-line bg-canvas p-2.5">
                     <p className="text-xs leading-relaxed text-muted">{n.body}</p>
-                    <p className="mt-1 text-micro text-faint">{n.author_name ?? 'Recruiter'} · {formatRelative(n.created_at)}</p>
+                    <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.06em] text-faint">{n.author_name ?? 'Recruiter'} · {formatRelative(n.created_at)}</p>
                   </div>
                 ))
               )}
@@ -283,7 +283,7 @@ export function ApplicationDetailPage() {
                 a.events.map((e, i) => (
                   <li key={e.id} className="relative flex gap-3 pb-3 last:pb-0">
                     <span className="relative flex w-3 shrink-0 justify-center">
-                      <span className={`mt-1 h-1.5 w-1.5 rounded-full ${i === 0 ? 'bg-accent' : 'bg-line'}`} />
+                      <span className={`mt-1 h-1.5 w-1.5 ${i === 0 ? 'bg-accent' : 'bg-line'}`} />
                       {i !== a.events.length - 1 && <span className="absolute top-3 h-full w-px bg-line" aria-hidden />}
                     </span>
                     <div className="min-w-0 pb-1">

@@ -91,7 +91,7 @@ export function QuestionsPanel({ applicationId }: { applicationId: number }) {
                 </div>
                 <ul className="space-y-2">
                   {items.map((q) => (
-                    <li key={q.id} className="rounded-lg border border-line bg-canvas/40 p-2.5">
+                    <li key={q.id} className="border border-line bg-canvas p-2.5">
                       {editing === q.id ? (
                         <div>
                           <Textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} aria-label="Edit question" />

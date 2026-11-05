@@ -94,3 +94,11 @@ export const jobStatusTone = (s: JobStatus): Tone => (s === 'open' ? 'good' : 'n
 export const bytes = (n: number) => (n > 1_000_000 ? `${(n / 1_000_000).toFixed(1)} MB` : `${Math.round(n / 1000)} KB`)
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+
+// Employment types are stored verbatim ("Full-time", "full_time", "Contract").
+export function employmentLabel(value: string | null | undefined) {
+  if (!value) return '—'
+  const spaced = value.replace(/_/g, ' ')
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+}

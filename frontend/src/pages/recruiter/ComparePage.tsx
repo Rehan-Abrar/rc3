@@ -2,6 +2,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Columns3 } from 'lucide-react'
 import { talentApi } from '../../lib/api'
 import { useAsync } from '../../lib/useAsync'
+import { ScoreNumber } from '../../components/ui/score'
 import { Badge, Button, Card, EmptyState, ErrorState, Skeleton } from '../../components/ui/core'
 import { PageHeader } from '../../components/layout/AppShell'
 import { ScoreBreakdown, SkillStatusPill } from '../../components/ui/score'
@@ -57,10 +58,12 @@ export function ComparePage() {
               <Card key={row.candidate_id} className="flex flex-col">
                 <div className="border-b border-line px-4 py-3">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="min-w-0 truncate text-sm font-semibold text-ink">{row.name}</p>
+                    <p className="min-w-0 truncate body-copy text-sm font-semibold text-ink">{row.name}</p>
                     <div className="text-right">
-                      <p className="text-2xl font-semibold text-ink tnum">{row.score ? Math.round(row.score.overall) : '—'}</p>
-                      <p className="text-micro text-faint">{row.score ? scoreBand(row.score.overall) : 'Not assessed'}</p>
+                      <ScoreNumber score={row.score} size="md" />
+                      <p className="mt-0.5 font-ui text-[10px] uppercase tracking-[0.06em] text-faint">
+                        {row.score ? scoreBand(row.score.overall) : 'Not assessed'}
+                      </p>
                     </div>
                   </div>
                   {row.score && (
@@ -76,16 +79,16 @@ export function ComparePage() {
                     if (!skill) return null
                     return (
                       <div key={label} className="px-4 py-2.5">
-                        <p className="text-micro text-faint">{label}</p>
+                        <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-faint">{label}</p>
                         <div className="mt-1">
                           <SkillStatusPill status={skill.status} support={skill.support} />
                         </div>
                         {skill.evidence ? (
-                          <p className="mt-1.5 border-l-2 border-accent/40 pl-2 text-micro leading-relaxed text-muted">
+                          <p className="mt-1.5 border-l-2 border-accent/60 bg-canvas py-1 pl-2 pr-1.5 body-copy text-[11px] leading-relaxed text-ink/80">
                             “{skill.evidence.quote}”
                           </p>
                         ) : (
-                          <p className="mt-1.5 text-micro text-faint">No supporting excerpt found.</p>
+                          <p className="mt-1.5 body-copy text-[11px] text-faint">No supporting excerpt found — not the same as missing skill.</p>
                         )}
                       </div>
                     )
@@ -94,7 +97,7 @@ export function ComparePage() {
 
                 {row.gaps.length > 0 && (
                   <div className="border-t border-line px-4 py-2.5">
-                    <p className="text-micro font-medium uppercase tracking-wider text-faint">Gaps</p>
+                    <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">[ Gaps ]</p>
                     <div className="mt-1 flex flex-wrap gap-1">
                       {row.gaps.map((g) => <Badge key={g} tone="warn">{g}</Badge>)}
                     </div>

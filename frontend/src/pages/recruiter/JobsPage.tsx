@@ -7,7 +7,7 @@ import type { JobStatus } from '../../lib/types'
 import { Badge, Button, Card, CardHeader, Dialog, EmptyState, ErrorState, Input, Select, Skeleton, Tabs } from '../../components/ui/core'
 import { PageHeader } from '../../components/layout/AppShell'
 import { useToast } from '../../components/ui/toast'
-import { formatDate, formatSalary, jobStatusTone } from '../../lib/utils'
+import { employmentLabel, formatDate, formatSalary, jobStatusTone } from '../../lib/utils'
 
 export function JobsPage() {
   const [status, setStatus] = useState<'all' | JobStatus>('all')
@@ -100,8 +100,8 @@ export function JobsPage() {
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[820px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-line text-micro uppercase tracking-wider text-faint">
-                    <th className="px-4 py-2 font-medium">Role</th>
+                  <tr className="border-b border-line font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
+                    <th className="px-4 py-2.5 font-medium">Role</th>
                     <th className="px-4 py-2 font-medium">Location</th>
                     <th className="px-4 py-2 font-medium">Compensation</th>
                     <th className="px-4 py-2 text-right font-medium">Applicants</th>
@@ -114,12 +114,12 @@ export function JobsPage() {
                 <tbody className="divide-y divide-line">
                   {rows.map((j) => (
                     <tr key={j.id} className="row-hover">
-                      <td className="px-4 py-2.5">
-                        <Link to={`/recruiter/jobs/${j.id}`} className="font-medium text-ink hover:text-accent">
+                      <td className="px-4 py-3">
+                        <Link to={`/recruiter/jobs/${j.id}`} className="body-copy text-sm font-semibold text-ink hover:text-accent">
                           {j.title}
                         </Link>
-                        <p className="text-micro text-faint">
-                          {j.department} · {j.employment_type}
+                        <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-faint">
+                          {j.department} · {employmentLabel(j.employment_type)}
                         </p>
                       </td>
                       <td className="px-4 py-2.5 text-xs text-muted">{j.location}</td>
@@ -164,7 +164,7 @@ export function JobsPage() {
                   </div>
                   <p className="mt-0.5 text-micro text-faint">{j.location} · {formatSalary(j.salary_min, j.salary_max)}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-micro text-muted">
-                    <span>{j.applicant_count} applicants</span>
+                    <span>{j.applicant_count} {j.applicant_count === 1 ? 'applicant' : 'applicants'}</span>
                     <span aria-hidden>·</span>
                     <span>{j.shortlisted_count} shortlisted</span>
                     <span aria-hidden>·</span>

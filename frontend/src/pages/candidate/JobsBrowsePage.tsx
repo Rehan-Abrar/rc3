@@ -7,7 +7,7 @@ import { useAsync } from '../../lib/useAsync'
 import { Badge, Button, Card, CardHeader, Dialog, EmptyState, ErrorState, Input, Skeleton } from '../../components/ui/core'
 import { PageHeader } from '../../components/layout/AppShell'
 import { useToast } from '../../components/ui/toast'
-import { formatSalary } from '../../lib/utils'
+import { employmentLabel, formatSalary } from '../../lib/utils'
 
 export function JobsBrowsePage() {
   const { push } = useToast()
@@ -70,25 +70,40 @@ export function JobsBrowsePage() {
         <Card><EmptyState icon={<BriefcaseBusiness className="h-4 w-4" />} title="No open roles" body="Check back soon." /></Card>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {rows.map((j) => {
+          {rows.map((j, index) => {
             const applied = appliedJobIds.has(j.id)
             return (
               <Card key={j.id} className="flex flex-col">
-                <div className="border-b border-line px-4 py-3">
+                <div className="flex-1 px-4 py-4">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="truncate text-sm font-semibold text-ink">{j.title}</h3>
-                      <p className="text-micro text-faint">{j.department} · {j.employment_type}</p>
-                    </div>
-                    {applied ? <Badge tone="good">Applied</Badge> : <Badge tone="neutral">Open</Badge>}
+                    <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
+                      Role {String(index + 1).padStart(2, '0')}
+                    </span>
+                    {applied ? <Badge tone="good">Applied</Badge> : <Badge tone="accent">Open</Badge>}
                   </div>
-                  <p className="mt-2 flex flex-wrap items-center gap-2 text-micro text-muted">
-                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {j.location}</span>
+                  <h3 className="mt-1.5 font-display text-[17px] font-medium leading-snug text-ink">{j.title}</h3>
+                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
+                    {j.department} · {employmentLabel(j.employment_type)}
+                  </p>
+                  <p className="mt-2 flex flex-wrap items-center gap-3 body-copy text-[11px] text-muted">
+                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3 text-faint" /> {j.location}</span>
                     <span className="tnum">{formatSalary(j.salary_min, j.salary_max)}</span>
                   </p>
                 </div>
-                <div className="flex items-center justify-between gap-2 border-t border-line px-4 py-2.5">
-                  <span className="text-micro text-faint">{j.applicant_count} applicants</span>
+                <div className="grid grid-cols-3 divide-x divide-line border-t border-line">
+                  {[
+                    ['Applicants', j.applicant_count],
+                    ['Shortlisted', j.shortlisted_count],
+                    ['Interviews', j.interview_count],
+                  ].map(([label, value]) => (
+                    <div key={label as string} className="px-3 py-2">
+                      <p className="font-display text-lg font-light leading-none text-ink tnum">{value}</p>
+                      <p className="mt-1 font-ui text-[9px] uppercase tracking-[0.08em] text-faint">{label}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between gap-2 border-t border-line px-4 py-3">
+                  <span className="body-copy text-[11px] text-faint">Your resume is assessed, never auto-rejected.</span>
                   <Button size="sm" variant={applied ? 'secondary' : 'primary'} disabled={applied} onClick={() => openApply(j)}>
                     {applied ? 'Already applied' : 'Apply'}
                   </Button>
@@ -113,7 +128,7 @@ export function JobsBrowsePage() {
       >
         <div className="space-y-3">
           {(resumes.data ?? []).length === 0 ? (
-            <div className="rounded-lg border border-warn/30 bg-warn/10 px-3 py-2 text-xs text-warn">
+            <div className="border border-warn/30 bg-warn/5 px-3 py-2 text-xs text-warn">
               You have no resume on file. <Link to="/candidate/resume" className="underline">Upload one first</Link>.
             </div>
           ) : (
@@ -121,8 +136,8 @@ export function JobsBrowsePage() {
               <p className="label">Choose a resume</p>
               <div className="space-y-2">
                 {(resumes.data ?? []).map((r) => (
-                  <label key={r.id} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs ${resumeId === r.id ? 'border-accent/60 bg-accent/10' : 'border-line bg-canvas/50'}`}>
-                    <input type="radio" name="resume" checked={resumeId === r.id} onChange={() => setResumeId(r.id)} className="accent-[rgb(125,156,255)]" />
+                  <label key={r.id} className={`flex cursor-pointer items-center gap-2 border px-3 py-2 body-copy text-xs ${resumeId === r.id ? 'border-accent bg-accent/8' : 'border-line bg-canvas'}`}>
+                    <input type="radio" name="resume" checked={resumeId === r.id} onChange={() => setResumeId(r.id)} className="accent-[#0043CA]" />
                     <span className="min-w-0 flex-1 truncate text-ink">{r.filename}</span>
                     <span className="text-micro text-faint">{r.page_count}p</span>
                   </label>
@@ -135,7 +150,7 @@ export function JobsBrowsePage() {
             You will see the exact status a recruiter sets. AI never rejects you automatically.
           </p>
           {error && (
-            <div className="flex items-start gap-2 rounded-lg border border-bad/30 bg-bad/10 px-3 py-2 text-xs text-bad" role="alert">
+            <div className="flex items-start gap-2 border border-bad/30 bg-bad/5 px-3 py-2 text-xs text-bad" role="alert">
               <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {error}
             </div>
           )}

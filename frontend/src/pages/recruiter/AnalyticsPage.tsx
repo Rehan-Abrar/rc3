@@ -7,22 +7,25 @@ import { PageHeader } from '../../components/layout/AppShell'
 import { STAGE_LABEL } from '../../lib/utils'
 
 const STAGE_COLORS: Record<string, string> = {
-  submitted: '#6c7889',
-  parsed: '#7d9cff',
-  assessed: '#5b8cff',
-  recruiter_review: '#f0b24a',
-  shortlisted: '#3ddc97',
-  interview: '#7d9cff',
-  selected: '#3ddc97',
-  rejected: '#f47280',
+  submitted: '#9CA3AF',
+  parsed: '#668FD8',
+  assessed: '#0043CA',
+  recruiter_review: '#B45309',
+  shortlisted: '#047857',
+  interview: '#336AD6',
+  selected: '#047857',
+  rejected: '#DC2626',
 }
 
+const AXIS = { fill: '#6B7280', fontSize: 10 }
 const tooltipStyle = {
-  backgroundColor: '#181d26',
-  border: '1px solid #272e3a',
-  borderRadius: 8,
+  backgroundColor: '#FFFFFF',
+  border: '1px solid #E5E7EB',
+  borderRadius: 0,
   fontSize: 12,
-  color: '#e9eef6',
+  fontFamily: 'Instrument Sans, sans-serif',
+  color: '#000F2E',
+  boxShadow: '0 20px 40px -24px rgb(0 15 46 / 0.25)',
 }
 
 export function AnalyticsPage() {
@@ -45,11 +48,11 @@ export function AnalyticsPage() {
           ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-[86px]" />)
           : s && (
               <>
-                <StatCard label="Active jobs" value={s.active_jobs} icon={<BriefcaseBusiness className="h-4 w-4" />} hint="Open requisitions" />
-                <StatCard label="Applications" value={s.applications} icon={<Users className="h-4 w-4" />} hint="All time" />
-                <StatCard label="Shortlisted" value={s.shortlisted} tone="good" icon={<CheckCircle2 className="h-4 w-4" />} hint={`${s.shortlist_rate}% of applications`} />
-                <StatCard label="Pending reviews" value={s.pending_reviews} tone="warn" icon={<ClipboardList className="h-4 w-4" />} hint="Need a decision" />
-                <StatCard label="Interviews" value={s.interviews} tone="accent" icon={<CalendarClock className="h-4 w-4" />} hint={`Avg process ${s.avg_processing_hours}h`} />
+                <StatCard index="01" label="Active jobs" value={s.active_jobs} icon={<BriefcaseBusiness className="h-4 w-4" />} hint="Open requisitions" />
+                <StatCard index="02" label="Applications" value={s.applications} icon={<Users className="h-4 w-4" />} hint="All time" />
+                <StatCard index="03" label="Shortlisted" value={s.shortlisted} tone="good" icon={<CheckCircle2 className="h-4 w-4" />} hint={`${s.shortlist_rate}% of applications`} />
+                <StatCard index="04" label="Pending reviews" value={s.pending_reviews} tone="warn" icon={<ClipboardList className="h-4 w-4" />} hint="Need a decision" />
+                <StatCard index="05" label="Interviews" value={s.interviews} tone="accent" icon={<CalendarClock className="h-4 w-4" />} hint={`Avg process ${s.avg_processing_hours}h`} />
               </>
             )}
       </div>
@@ -61,8 +64,8 @@ export function AnalyticsPage() {
             subtitle="Volume per open requisition"
             actions={
               <div className="flex items-center gap-3 text-micro text-muted">
-                <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-accent" aria-hidden /> Applications</span>
-                <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-good" aria-hidden /> Shortlisted</span>
+                <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 bg-accent" aria-hidden /> Applications</span>
+                <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 bg-good" aria-hidden /> Shortlisted</span>
               </div>
             }
           />
@@ -72,12 +75,12 @@ export function AnalyticsPage() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={s?.by_job ?? []} margin={{ top: 4, right: 12, left: -18, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#272e3a" vertical={false} />
-                  <XAxis dataKey="title" tick={{ fill: '#9ca7b7', fontSize: 10 }} axisLine={false} tickLine={false} interval={0} />
-                  <YAxis tick={{ fill: '#6c7889', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                  <Bar dataKey="applications" name="Applications" fill="#7d9cff" radius={[3, 3, 0, 0]} maxBarSize={42} />
-                  <Bar dataKey="shortlisted" name="Shortlisted" fill="#3ddc97" radius={[3, 3, 0, 0]} maxBarSize={42} />
+                  <CartesianGrid strokeDasharray="2 4" stroke="#E5E7EB" vertical={false} />
+                  <XAxis dataKey="title" tick={AXIS} axisLine={false} tickLine={false} interval={0} />
+                  <YAxis tick={AXIS} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(0,15,46,0.04)' }} />
+                  <Bar dataKey="applications" name="Applications" fill="#0043CA" maxBarSize={42} />
+                  <Bar dataKey="shortlisted" name="Shortlisted" fill="#047857" maxBarSize={42} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -92,13 +95,13 @@ export function AnalyticsPage() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={(s?.by_stage ?? []).map((x) => ({ ...x, label: STAGE_LABEL[x.stage] ?? x.stage }))} margin={{ top: 4, right: 12, left: -18, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#272e3a" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fill: '#9ca7b7', fontSize: 10 }} axisLine={false} tickLine={false} interval={0} />
-                  <YAxis tick={{ fill: '#6c7889', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                  <Bar dataKey="count" name="Candidates" radius={[3, 3, 0, 0]} maxBarSize={42}>
+                  <CartesianGrid strokeDasharray="2 4" stroke="#E5E7EB" vertical={false} />
+                  <XAxis dataKey="label" tick={AXIS} axisLine={false} tickLine={false} interval={0} />
+                  <YAxis tick={AXIS} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(0,15,46,0.04)' }} />
+                  <Bar dataKey="count" name="Candidates" maxBarSize={42}>
                     {(s?.by_stage ?? []).map((x) => (
-                      <Cell key={x.stage} fill={STAGE_COLORS[x.stage] ?? '#7d9cff'} />
+                      <Cell key={x.stage} fill={STAGE_COLORS[x.stage] ?? '#0043CA'} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -134,24 +137,24 @@ export function AnalyticsPage() {
                   'The same resume is scored twice with those fields swapped.',
                   'Any delta above zero means the scoring path leaks a protected attribute.',
                 ].map((line) => (
-                  <li key={line} className="flex gap-2 text-micro leading-relaxed text-faint">
-                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-faint/60" aria-hidden />
+                  <li key={line} className="flex gap-2 body-copy text-[11px] leading-relaxed text-muted">
+                    <span className="mt-1.5 h-1 w-1 shrink-0 bg-accent/50" aria-hidden />
                     {line}
                   </li>
                 ))}
               </ul>
               <div className="mt-auto grid grid-cols-3 gap-2">
-                <div className="rounded-lg border border-line bg-canvas/40 px-3 py-2 text-center">
+                <div className="border border-line bg-canvas px-3 py-2 text-center">
                   <p className="text-micro text-faint">Baseline</p>
-                  <p className="text-lg font-semibold text-ink tnum">{fairness.data.baseline}</p>
+                  <p className="font-display text-lg font-light text-ink tnum">{fairness.data.baseline}</p>
                 </div>
-                <div className="rounded-lg border border-line bg-canvas/40 px-3 py-2 text-center">
+                <div className="border border-line bg-canvas px-3 py-2 text-center">
                   <p className="text-micro text-faint">Perturbed</p>
-                  <p className="text-lg font-semibold text-ink tnum">{fairness.data.perturbed}</p>
+                  <p className="font-display text-lg font-light text-ink tnum">{fairness.data.perturbed}</p>
                 </div>
-                <div className="rounded-lg border border-good/30 bg-good/10 px-3 py-2 text-center">
+                <div className="border border-good/25 bg-good/8 px-3 py-2 text-center">
                   <p className="text-micro text-good">Delta</p>
-                  <p className="text-lg font-semibold text-good tnum">{fairness.data.delta}</p>
+                  <p className="font-display text-lg font-light text-good tnum">{fairness.data.delta}</p>
                 </div>
               </div>
             </div>
@@ -190,7 +193,7 @@ export function AnalyticsPage() {
               { label: 'Average processing time', value: `${s?.avg_processing_hours ?? 0}h`, icon: Timer, hint: 'Submission to first decision' },
               { label: 'Shortlisted vs. reviewed', value: s ? `${s.shortlisted}/${s.applications - s.pending_reviews}` : '—', icon: CheckCircle2, hint: 'Decided applications' },
             ].map((row) => (
-              <div key={row.label} className="flex items-center justify-between gap-3 rounded-lg border border-line bg-canvas/40 px-3 py-2.5">
+              <div key={row.label} className="flex items-center justify-between gap-3 border border-line bg-canvas px-3 py-2.5">
                 <div className="flex items-center gap-2">
                   <row.icon className="h-4 w-4 text-faint" />
                   <div>
@@ -198,7 +201,7 @@ export function AnalyticsPage() {
                     <p className="text-micro text-faint">{row.hint}</p>
                   </div>
                 </div>
-                <p className="text-lg font-semibold text-ink tnum">{row.value}</p>
+                <p className="font-display text-lg font-light text-ink tnum">{row.value}</p>
               </div>
             ))}
           </div>
@@ -216,10 +219,10 @@ export function AnalyticsPage() {
                   <li key={g.skill} className="px-4 py-2.5">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-xs text-ink">{g.skill}</p>
-                      <span className="text-micro text-muted tnum">{g.count} applicants</span>
+                      <span className="font-mono text-[10px] text-muted tnum">{g.count} {g.count === 1 ? 'applicant' : 'applicants'}</span>
                     </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-elevated">
-                      <div className="h-full rounded-full bg-warn/70" style={{ width: `${(g.count / max) * 100}%` }} />
+                    <div className="mt-1.5 h-1.5 overflow-hidden bg-elevated">
+                      <div className="h-full bg-warn/70" style={{ width: `${(g.count / max) * 100}%` }} />
                     </div>
                     
                   </li>

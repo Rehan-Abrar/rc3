@@ -4,7 +4,7 @@ import { applications } from '../../lib/api'
 import { useAsync } from '../../lib/useAsync'
 import { Badge, Button, Card, CardHeader, EmptyState, ErrorState, Skeleton } from '../../components/ui/core'
 import { PageHeader } from '../../components/layout/AppShell'
-import { STAGE_LABEL, STAGE_ORDER, formatDate, formatRelative, stageTone } from '../../lib/utils'
+import { STAGE_LABEL, formatDate, formatRelative, stageTone } from '../../lib/utils'
 
 const STEPS = ['submitted', 'parsed', 'assessed', 'recruiter_review', 'shortlisted', 'interview', 'selected'] as const
 
@@ -52,33 +52,35 @@ export function MyApplicationsPage() {
                 />
                 <div className="px-4 py-4">
                   {rejected ? (
-                    <div className="flex items-center gap-2 rounded-lg border border-bad/30 bg-bad/10 px-3 py-2.5 text-xs text-bad">
+                    <div className="flex items-center gap-2 border border-bad/30 bg-bad/5 px-3 py-2.5 text-xs text-bad">
                       <Clock className="h-4 w-4" /> This application was closed by the recruiter. You can apply to other roles.
                     </div>
                   ) : (
-                    <ol className="flex flex-wrap items-center gap-y-3">
+                    <ol className="grid grid-cols-1 gap-y-3 sm:grid-cols-7 sm:gap-y-0">
                       {STEPS.map((s, i) => {
                         const done = i <= currentIndex
                         const isCurrent = i === currentIndex
                         return (
-                          <li key={s} className="flex min-w-[92px] flex-1 items-start gap-2">
-                            <span className="flex flex-col items-center">
+                          <li key={s} className="relative flex items-start gap-2.5 sm:block">
+                            <span className="flex items-center sm:mb-2">
                               <span
-                                className={`flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
+                                className={`flex h-6 w-6 shrink-0 items-center justify-center border font-mono text-[10px] ${
                                   isCurrent
                                     ? 'border-accent bg-accent text-accent-ink'
                                     : done
-                                      ? 'border-good/50 bg-good/15 text-good'
-                                      : 'border-line bg-elevated text-faint'
+                                      ? 'border-accent/40 bg-accent/10 text-accent'
+                                      : 'border-line bg-canvas text-faint'
                                 }`}
                               >
-                                {done && !isCurrent ? <CheckCircle2 className="h-3 w-3" /> : i + 1}
+                                {done && !isCurrent ? <CheckCircle2 className="h-3 w-3" /> : String(i + 1).padStart(2, '0')}
                               </span>
-                              {i !== STEPS.length - 1 && <span className={`mt-1 hidden h-px w-full sm:block ${done ? 'bg-good/40' : 'bg-line'}`} aria-hidden />}
+                              {i !== STEPS.length - 1 && (
+                                <span className={`ml-2 hidden h-px flex-1 sm:block ${done ? 'bg-accent/40' : 'bg-line'}`} aria-hidden />
+                              )}
                             </span>
-                            <span className={`text-micro ${isCurrent ? 'text-ink' : done ? 'text-muted' : 'text-faint'}`}>
+                            <span className={`body-copy text-[11px] leading-tight ${isCurrent ? 'font-semibold text-ink' : done ? 'text-muted' : 'text-faint'}`}>
                               {STAGE_LABEL[s]}
-                              {isCurrent && <span className="mt-0.5 block text-[10px] text-faint">current</span>}
+                              {isCurrent && <span className="mt-0.5 block font-ui text-[9px] uppercase tracking-[0.08em] text-accent">current</span>}
                             </span>
                           </li>
                         )
@@ -86,12 +88,16 @@ export function MyApplicationsPage() {
                     </ol>
                   )}
 
-                  {(a.events?.length ?? 0) > 0 && (
-                    <div className="mt-4 border-t border-line pt-3">
-                      <p className="text-micro font-medium uppercase tracking-wider text-faint">History</p>
+                  <div className="mt-4 border-t border-line pt-3">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">[ History ]</p>
+                      {(a.events?.length ?? 0) === 0 && (
+                        <p className="mt-1.5 body-copy text-[11px] text-muted">
+                          Submitted {formatDate(a.created_at, true)}. Stage changes appear here as the recruiter moves your application.
+                        </p>
+                      )}
                       <ul className="mt-1.5 space-y-1">
                         {(a.events ?? []).slice(0, 3).map((e) => (
-                          <li key={e.id} className="flex flex-wrap items-center gap-2 text-micro text-muted">
+                          <li key={e.id} className="flex flex-wrap items-center gap-2 body-copy text-[11px] text-muted">
                             <CalendarClock className="h-3 w-3 text-faint" />
                             <span className="text-ink">{STAGE_LABEL[e.to_stage]}</span>
                             <span className="text-faint">· {formatDate(e.created_at, true)}</span>
@@ -100,8 +106,6 @@ export function MyApplicationsPage() {
                         ))}
                       </ul>
                     </div>
-                  )}
-                  <p className="mt-3 text-micro text-faint">Stages: {STAGE_ORDER.filter((s) => s !== 'rejected').map((s) => STAGE_LABEL[s]).join(' → ')}</p>
                 </div>
               </Card>
             )

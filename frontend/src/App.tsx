@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react'
 import { AuthProvider, useAuth } from './lib/auth'
 import { ToastProvider } from './components/ui/toast'
 import { AppShell } from './components/layout/AppShell'
+import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
 import { RecruiterDashboardPage } from './pages/recruiter/DashboardPage'
@@ -23,7 +24,7 @@ import { ResumePage } from './pages/candidate/ResumePage'
 function RedirectByRole() {
   const { user, loading } = useAuth()
   if (loading) return <Splash />
-  if (!user) return <Navigate to="/login" replace />
+  if (!user) return <LandingPage />
   return <Navigate to={user.role === 'recruiter' ? '/recruiter' : '/candidate'} replace />
 }
 
