@@ -77,26 +77,40 @@ const DIMENSIONS = [
 ] as const
 
 export function ScoreBreakdown({ score, compact }: { score: Score; compact?: boolean }) {
+  const notMeasured = new Set(score.not_measured ?? [])
+  const effective = score.effective_weights ?? {}
   return (
     <div className={cn('space-y-2.5', compact && 'space-y-2')}>
       {DIMENSIONS.map((d) => {
+        // A dimension the role sets no bar for is NOT a zero: show it as "not scored" with 0%
+        // so the percentages on screen still multiply out to the overall score above.
+        const measured = !notMeasured.has(d.key)
         const value = Math.round(score[d.key])
         const tone = scoreTone(value)
+        const weight = measured ? Math.round((effective[d.key] ?? d.weight / 100) * 100) : 0
         return (
-          <div key={d.key}>
+          <div key={d.key} className={cn(!measured && 'opacity-70')}>
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xs text-muted">
                 {d.label}
-                <span className="ml-1.5 text-micro text-faint">{d.weight}%</span>
+                <span className="ml-1.5 text-micro text-faint">
+                  {measured ? `${weight}%` : 'not scored'}
+                </span>
               </span>
-              <span className="text-xs font-medium text-ink tnum">{value}</span>
+              <span className="text-xs font-medium text-ink tnum">{measured ? value : '—'}</span>
             </div>
-            <div className="mt-1 h-1.5 w-full overflow-hidden bg-elevated" role="meter" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} aria-label={`${d.label} score`}>
-              <div
-                className={cn('h-full transition-[width] duration-500', tone === 'good' ? 'bg-accent' : tone === 'warn' ? 'bg-warn' : 'bg-bad')}
-                style={{ width: `${Math.max(2, value)}%` }}
-              />
-            </div>
+            {measured ? (
+              <div className="mt-1 h-1.5 w-full overflow-hidden bg-elevated" role="meter" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} aria-label={`${d.label} score`}>
+                <div
+                  className={cn('h-full transition-[width] duration-500', tone === 'good' ? 'bg-accent' : tone === 'warn' ? 'bg-warn' : 'bg-bad')}
+                  style={{ width: `${Math.max(2, value)}%` }}
+                />
+              </div>
+            ) : (
+              <p className="mt-1 text-[10px] leading-snug text-faint">
+                This role sets no bar for it, so it was excluded and the other weights scaled up.
+              </p>
+            )}
           </div>
         )
       })}

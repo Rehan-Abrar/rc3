@@ -52,6 +52,11 @@ export interface Score {
   overall: number; skills: number; experience: number; projects: number; qualifications: number;
   confidence: Confidence; insufficient_evidence: boolean;
   ai_mode: AiMode; embedding_mode: EmbeddingMode; model: string;
+  /** Dimensions that were NOT scored (e.g. experience when the job sets no year bar).
+   *  Their numeric field is 0.0 for backwards compatibility - render them as "not scored". */
+  not_measured?: string[];
+  /** Weights actually used, renormalised over the measured dimensions. Sums to 1. */
+  effective_weights?: Record<string, number>;
 }
 export interface SkillRow {
   requirement_id: number; label: string; importance: Importance; weight: number;

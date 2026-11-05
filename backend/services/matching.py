@@ -79,19 +79,60 @@ def _excerpts_block(chunks: list[dict], masked: str) -> str:
     return "\n\n".join(out)
 
 
+def _norm(text: str) -> str:
+    """Whitespace/case-insensitive form used when comparing a quote with its source span."""
+    return " ".join((text or "").split()).lower()
+
+
+def _flat_with_map(text: str) -> tuple[str, list[int]]:
+    """Whitespace-collapsed lowercase text plus, for each character, its index in `text`.
+
+    Lets us recover real offsets for a quote that the PDF wrapped across lines, without ever
+    inventing a position: we only report a span when every character maps back to the source.
+    """
+    chars: list[str] = []
+    index: list[int] = []
+    previous_space = False
+    for position, char in enumerate(text):
+        if char.isspace():
+            if previous_space:
+                continue
+            chars.append(" ")
+            index.append(position)
+            previous_space = True
+        else:
+            chars.append(char.lower())
+            index.append(position)
+            previous_space = False
+    return "".join(chars), index
+
+
 def _verify(masked: str, quote: str) -> tuple[str | None, int | None, int | None, str]:
+    """(quote, start, end, support). Offsets are always real positions in `masked`.
+
+    A quote counts as verified only when its words occur at the reported span; a whitespace
+    difference (the PDF wrapped the line) still qualifies and keeps its true offsets. If we
+    cannot establish a source span, the quote is flagged, never given a guessed position.
+    """
     q = (quote or "").strip()
     if not q:
         return None, None, None, "flagged_unverified"
     idx = masked.find(q)
     if idx >= 0:
         return q, idx, idx + len(q), "verified"
-    flat_q = re.sub(r"\s+", " ", q).strip().lower()
-    flat = re.sub(r"\s+", " ", masked.lower())
+    flat_q = " ".join(q.split()).lower()
+    if not flat_q:
+        return None, None, None, "flagged_unverified"
+    flat, index = _flat_with_map(masked)
     pos = flat.find(flat_q)
-    if pos >= 0:
-        return q, None, None, "verified_soft"
-    return q[:300], None, None, "flagged_unverified"
+    if pos < 0:
+        return q[:300], None, None, "flagged_unverified"
+    start = index[pos]
+    end = index[pos + len(flat_q) - 1] + 1
+    # Guard the invariant we advertise: the words at [start:end] are the quote's words.
+    if " ".join(masked[start:end].split()).lower() != flat_q:
+        return q[:300], None, None, "flagged_unverified"
+    return q, start, end, "verified"
 
 
 def gate_requirements(reqs: list[dict], chunk_vecs: list[list[float]]) -> dict[int, float]:
@@ -225,8 +266,13 @@ def combine(rows: list[dict], profile: dict, job_description: str,
         "qualifications": _qualifications_score(rows),
     }
     present = {k: v for k, v in dims.items() if v is not None}
+    not_measured = [k for k, v in dims.items() if v is None]
     total_w = sum(WEIGHTS[k] for k in present) or 1.0
     overall = sum(WEIGHTS[k] * v for k, v in present.items()) / total_w
+    # Weights are renormalised over the dimensions we could actually measure. Publish both
+    # facts so the UI never shows "0" for a dimension that simply was not scored, and so the
+    # breakdown it displays multiplies out to the same overall we report.
+    effective = {k: (round(WEIGHTS[k] / total_w, 4) if k in present else 0.0) for k in WEIGHTS}
     confidence, insufficient = _confidence(rows)
     gaps = [r["label"] for r in rows if r["status"] in ("not_evidenced", "confirmed_absent")]
     return {
@@ -238,6 +284,8 @@ def combine(rows: list[dict], profile: dict, job_description: str,
         "confidence": confidence,
         "insufficient_evidence": insufficient,
         "gaps": gaps,
+        "not_measured": not_measured,
+        "effective_weights": effective,
         "learning_suggestions": [f"Add concrete project evidence for {g}." for g in gaps[:5]],
     }
 

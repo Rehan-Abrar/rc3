@@ -338,10 +338,14 @@ def fairness_audit(job_id: int | None = None, db: Session = Depends(get_db),
             "job": job.title,
             "note": (f"Took {cand_name}'s own résumé for {job.title} and changed only gender, "
                      "name, age, marital status and nationality. After protected fields are "
-                     "stripped, the text handed to the scorer is byte-identical in every variant, "
-                     f"so the score cannot move. Baseline {baseline:.1f} is that candidate's real "
-                     "Skills score from the ranked list (not the weighted Overall). Contact "
-                     "details removed: " + ("yes" if protected_removed else "NO"))}
+                     "stripped, the text handed to the scorer is identical in every variant, so "
+                     f"the score cannot move. Baseline {baseline:.1f} is that candidate's real "
+                     "Skills score (not the weighted Overall). Contact details removed: "
+                     + ("yes" if protected_removed else "NO") +
+                     ". This proves score invariance to those attributes on the text we score. "
+                     "It is not a claim that hiring outcomes are fair: protected attributes are "
+                     "excluded from scoring, every score is evidence-linked, and a human makes "
+                     "the decision.")}
 
 
 @router.post("/audit/merge", status_code=201)

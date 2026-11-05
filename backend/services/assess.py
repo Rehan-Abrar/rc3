@@ -111,7 +111,9 @@ def run_assessment(db: Session, app: m.Application, actor_id: int) -> m.Assessme
         model=llm.model_for("quality") if ai_mode == "groq" else "none",
         summary=summary[:2000], explanation=explanation[:4000],
         payload_json=json.dumps({"gaps": scores["gaps"],
-                                 "learning_suggestions": scores["learning_suggestions"]}))
+                                 "learning_suggestions": scores["learning_suggestions"],
+                                 "not_measured": scores["not_measured"],
+                                 "effective_weights": scores["effective_weights"]}))
     db.add(a)
     db.flush()
     for r in rows:

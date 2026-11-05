@@ -126,6 +126,10 @@ failure modes below. `feature_sweep.py` walks all 64 API paths including the unh
 
 ## Failure behaviour (deliberate)
 
+- **Weights you can check.** The breakdown shows the weights actually used. A dimension the
+  role sets no bar for (e.g. experience when the job has no year requirement) is reported as
+  `not_measured`, rendered as "not scored", and carries 0% - so the percentages on screen
+  multiply out to the overall. A measured dimension that scores 0 is a real zero and stays in.
 - **Never a silent zero.** If the model returns nothing usable, or claims "no evidence" for a
   requirement it cannot actually rule out, the assessment degrades (`ai_mode=degraded`, reasons
   in `summary`) and re-attempts itself on the next read instead of freezing a bad number.

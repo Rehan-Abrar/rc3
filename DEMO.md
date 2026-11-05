@@ -42,6 +42,10 @@ point is tied to a sentence in the candidate's own résumé."
 
 7. **Audit** page: the same résumé is re-scored with gender, name, age, marital status and
    nationality changed. Baseline is that candidate's real Skills score; delta is **0.0**.
+   Be precise about the claim: it proves the text we score is unchanged by those attributes -
+   it is not proof that hiring outcomes are fair, which is why a human still decides.
+   On the breakdown, a dimension the role sets no bar for reads "not scored" with 0%, so the
+   percentages always multiply out to the overall.
 8. Kill the internet (or drop the API key) and re-run an assessment: the app says
    `ai_mode: degraded` and shows semantic similarity only. It never invents a score and never
    labels lexical matching as semantic.

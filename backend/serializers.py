@@ -71,14 +71,29 @@ def application(a: m.Application) -> dict:
             "override_reason": a.override_reason}
 
 
+def _raw_payload(a: m.Assessment) -> dict:
+    payload = getattr(a, "_payload_cache", None)
+    if payload is None:
+        try:
+            payload = json.loads(a.payload_json or "{}")
+        except json.JSONDecodeError:
+            payload = {}
+        a._payload_cache = payload
+    return payload
+
+
 def score_block(a: m.Assessment | None, ai_mode: str, emb_mode: str) -> dict | None:
     if a is None:
         return None
+    payload = _raw_payload(a)
     return {"overall": a.overall, "skills": a.skills_score, "experience": a.experience_score,
             "projects": a.projects_score, "qualifications": a.qualifications_score,
             "confidence": a.confidence, "insufficient_evidence": a.insufficient_evidence,
             "ai_mode": a.ai_mode or ai_mode, "embedding_mode": a.embedding_mode or emb_mode,
-            "model": a.model}
+            "model": a.model,
+            # A dimension listed here was not scored, so its 0.0 is "not applicable", not a fail.
+            "not_measured": payload.get("not_measured", []),
+            "effective_weights": payload.get("effective_weights", {})}
 
 
 def skill_row(s: m.AssessmentSkill) -> dict:
@@ -93,11 +108,7 @@ def skill_row(s: m.AssessmentSkill) -> dict:
 
 def assessment(a: m.Assessment, ai_mode: str, emb_mode: str) -> dict:
     base = score_block(a, ai_mode, emb_mode) or {}
-    payload = {}
-    try:
-        payload = json.loads(a.payload_json or "{}")
-    except json.JSONDecodeError:
-        payload = {}
+    payload = _raw_payload(a)
     base.update({"id": a.id, "application_id": a.application_id,
                  "summary": a.summary, "explanation": a.explanation,
                  "skills_detail": [skill_row(s) for s in a.skills_detail],
