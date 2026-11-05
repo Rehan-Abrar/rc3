@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ChevronDown, Columns3, Filter, ShieldAlert, SlidersHorizontal, Star } from 'lucide-react'
-import { applications, jobs as jobsApi } from '../../lib/api'
-import type { ApplicantRow } from '../../lib/types'
+import { applications, auditApi, jobs as jobsApi } from '../../lib/api'
+import type { ApplicantRow, DuplicatePair } from '../../lib/types'
 import { useAsync } from '../../lib/useAsync'
 import { Badge, Button, Card, CardHeader, Dialog, EmptyState, ErrorState, Field, Input, Select, Skeleton } from '../../components/ui/core'
 import { PageHeader } from '../../components/layout/AppShell'
@@ -70,6 +70,25 @@ export function ApplicantsPage() {
   const [overrideReason, setOverrideReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const duplicates = useAsync(() => auditApi.duplicates(), [])
+  const [dupPair, setDupPair] = useState<DuplicatePair | null>(null)
+  const [merging, setMerging] = useState(false)
+
+  const confirmMerge = async () => {
+    if (!dupPair) return
+    setMerging(true)
+    try {
+      await auditApi.merge(dupPair.keep.id, dupPair.duplicate.id)
+      push(`Merged ${dupPair.duplicate.name} into ${dupPair.keep.name}.`)
+      setDupPair(null)
+      duplicates.reload()
+      list.reload()
+    } catch (e) {
+      push(e instanceof Error ? e.message : 'Could not merge.', 'error')
+    } finally {
+      setMerging(false)
+    }
+  }
 
   const rows = list.data ?? []
   const requirementLabels = useMemo(() => job.data?.requirements.map((r) => r.label) ?? [], [job.data])
@@ -146,6 +165,56 @@ export function ApplicantsPage() {
           </>
         }
       />
+
+      {(duplicates.data ?? []).length > 0 && (
+        <Card className="mb-4 border-warn/30 bg-warn/[0.04] animate-fade-in">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <div className="flex items-start gap-2.5">
+              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden />
+              <div>
+                <p className="text-xs font-medium text-ink">
+                  {duplicates.data!.length} possible duplicate {duplicates.data!.length === 1 ? 'record' : 'records'} detected
+                </p>
+                <p className="mt-0.5 text-micro text-muted">
+                  {duplicates.data!.map((d) => `${d.keep.name} ↔ ${d.duplicate.name} · ${d.reason}`).join(' · ')}
+                </p>
+              </div>
+            </div>
+            <Button size="sm" variant="secondary" onClick={() => setDupPair(duplicates.data![0])}>Review</Button>
+          </div>
+        </Card>
+      )}
+
+      <Dialog
+        open={Boolean(dupPair)}
+        onClose={() => setDupPair(null)}
+        title="Merge duplicate candidates?"
+        description="Nothing is merged automatically. Confirm to keep one record and fold the other into it."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDupPair(null)}>Keep separate</Button>
+            <Button variant="primary" loading={merging} onClick={confirmMerge}>Confirm merge</Button>
+          </>
+        }
+      >
+        {dupPair && (
+          <div className="space-y-3 text-xs">
+            <p className="text-muted">{dupPair.reason} ({Math.round(dupPair.similarity * 100)}% document similarity).</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-lg border border-good/30 bg-good/5 p-2.5">
+                <p className="text-micro text-good">Keep</p>
+                <p className="mt-0.5 font-medium text-ink">{dupPair.keep.name}</p>
+                <p className="text-micro text-faint">{dupPair.keep.email}</p>
+              </div>
+              <div className="rounded-lg border border-line bg-canvas/50 p-2.5">
+                <p className="text-micro text-faint">Merge into keep</p>
+                <p className="mt-0.5 font-medium text-ink">{dupPair.duplicate.name}</p>
+                <p className="text-micro text-faint">{dupPair.duplicate.email}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </Dialog>
 
       <Card className="mb-4">
         <div className="flex flex-wrap items-center gap-2 px-3 py-2.5">

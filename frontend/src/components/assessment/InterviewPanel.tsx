@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { CalendarPlus, CalendarClock, MapPin, TriangleAlert } from 'lucide-react'
+import { CalendarPlus, CalendarClock, MapPin, Star, TriangleAlert } from 'lucide-react'
 import { interviewApi } from '../../lib/api'
 import type { Interview, InterviewType } from '../../lib/types'
 import { useAsync } from '../../lib/useAsync'
-import { Badge, Button, Dialog, EmptyState, Field, Input, Select, Skeleton } from '../ui/core'
+import { Badge, Button, Dialog, EmptyState, Field, Input, Select, Skeleton, Textarea } from '../ui/core'
 import { useToast } from '../ui/toast'
 import { formatDate } from '../../lib/utils'
 
@@ -24,6 +24,13 @@ export function InterviewPanel({ applicationId, candidateName, jobTitle }: { app
   const [location, setLocation] = useState('Google Meet')
   const [saving, setSaving] = useState(false)
   const [conflict, setConflict] = useState<string | null>(null)
+  const [fbFor, setFbFor] = useState<number | null>(null)
+  const [fb, setFb] = useState({ rating: 4, strengths: '', concerns: '', recommendation: 'yes' as 'strong_yes' | 'yes' | 'no' | 'strong_no' })
+  const [fbSaving, setFbSaving] = useState(false)
+  const [decideFor, setDecideFor] = useState<number | null>(null)
+  const [decision, setDecision] = useState<'selected' | 'rejected'>('selected')
+  const [rationale, setRationale] = useState('')
+  const [decSaving, setDecSaving] = useState(false)
 
   const create = async () => {
     setConflict(null)
@@ -50,6 +57,44 @@ export function InterviewPanel({ applicationId, candidateName, jobTitle }: { app
       setConflict(message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const saveFeedback = async () => {
+    if (!fbFor) return
+    if (!fb.strengths.trim()) {
+      push('Add at least one strength before saving.', 'error')
+      return
+    }
+    setFbSaving(true)
+    try {
+      await interviewApi.feedback(fbFor, fb)
+      push('Interview feedback saved.')
+      setFbFor(null)
+      setFb({ rating: 4, strengths: '', concerns: '', recommendation: 'yes' })
+    } catch (e) {
+      push(e instanceof Error ? e.message : 'Could not save feedback.', 'error')
+    } finally {
+      setFbSaving(false)
+    }
+  }
+
+  const saveDecision = async () => {
+    if (!decideFor) return
+    if (!rationale.trim()) {
+      push('Add a rationale for the audit trail.', 'error')
+      return
+    }
+    setDecSaving(true)
+    try {
+      await interviewApi.decision(decideFor, decision, rationale.trim())
+      push(`Final decision recorded: ${decision}.`)
+      setDecideFor(null)
+      setRationale('')
+    } catch (e) {
+      push(e instanceof Error ? e.message : 'Could not record the decision.', 'error')
+    } finally {
+      setDecSaving(false)
     }
   }
 
@@ -81,10 +126,78 @@ export function InterviewPanel({ applicationId, candidateName, jobTitle }: { app
               <p className="mt-0.5 text-micro text-faint">
                 {i.duration_min} min · {i.interview_type.replace('_', ' ')} · {i.interviewer_name} · <MapPin className="inline h-3 w-3" /> {i.location}
               </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <Button size="sm" variant="ghost" onClick={() => setFbFor(i.id)}>
+                  <Star className="h-3 w-3" /> Feedback
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { setDecideFor(i.id); setDecision('selected'); setRationale('') }}>
+                  Record decision
+                </Button>
+              </div>
             </li>
           ))}
         </ul>
       )}
+
+      <Dialog
+        open={Boolean(fbFor)}
+        onClose={() => setFbFor(null)}
+        title="Interviewer feedback"
+        description="Structured, stored against the interview."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setFbFor(null)}>Cancel</Button>
+            <Button variant="primary" loading={fbSaving} onClick={saveFeedback}>Save feedback</Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <Field label="Rating" htmlFor="rating">
+            <Select id="rating" value={fb.rating} onChange={(e) => setFb({ ...fb, rating: Number(e.target.value) })}>
+              {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n} / 5</option>)}
+            </Select>
+          </Field>
+          <Field label="Strengths" htmlFor="strengths">
+            <Textarea id="strengths" rows={2} value={fb.strengths} onChange={(e) => setFb({ ...fb, strengths: e.target.value })} placeholder="Concrete evidence of Django scale…" />
+          </Field>
+          <Field label="Concerns" htmlFor="concerns">
+            <Textarea id="concerns" rows={2} value={fb.concerns} onChange={(e) => setFb({ ...fb, concerns: e.target.value })} placeholder="Limited cloud operations depth…" />
+          </Field>
+          <Field label="Recommendation" htmlFor="rec">
+            <Select id="rec" value={fb.recommendation} onChange={(e) => setFb({ ...fb, recommendation: e.target.value as typeof fb.recommendation })}>
+              <option value="strong_yes">Strong yes</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="strong_no">Strong no</option>
+            </Select>
+          </Field>
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(decideFor)}
+        onClose={() => setDecideFor(null)}
+        title="Record final decision"
+        description="This is a human decision. It updates the application stage and the audit trail."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDecideFor(null)}>Cancel</Button>
+            <Button variant={decision === 'rejected' ? 'danger' : 'primary'} loading={decSaving} onClick={saveDecision}>Record decision</Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <Field label="Decision" htmlFor="decision">
+            <Select id="decision" value={decision} onChange={(e) => setDecision(e.target.value as 'selected' | 'rejected')}>
+              <option value="selected">Select candidate</option>
+              <option value="rejected">Reject candidate</option>
+            </Select>
+          </Field>
+          <Field label="Rationale (required)" htmlFor="rationale">
+            <Textarea id="rationale" rows={3} value={rationale} onChange={(e) => setRationale(e.target.value)} placeholder="Strong technical signal and clear ownership evidence…" />
+          </Field>
+        </div>
+      </Dialog>
 
       <Dialog
         open={open}
