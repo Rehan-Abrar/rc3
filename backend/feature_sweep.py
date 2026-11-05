@@ -224,10 +224,29 @@ def main():
     check("talent compare", "GET", "/talent/compare?ids=" + str(app_id), 200, token=rt)
     check("talent duplicates", "GET", "/talent/duplicates", 200, token=rt)
     check("recommended jobs (candidate)", "GET", "/candidates/jobs/recommended", 200, token=ct)
-    audit = check("fairness audit", "GET", "/audit/fairness", 200, token=rt)
+    # The endpoint must always describe itself: either a real audit, or an explicit
+    # "nothing to audit yet". Never a blank 200 with a fake 0.0.
+    own = check("fairness audit (sweep recruiter)", "GET", "/audit/fairness", 200, token=rt)
+    if isinstance(own, dict):
+        if own.get("applicable") is False:
+            ok = own.get("baseline") is None and own.get("checks") == [] and bool(own.get("note"))
+        else:
+            ok = (bool(own.get("candidate")) and bool(own.get("job")) and own.get("delta") == 0
+                  and bool(own.get("checks")))
+        results.append(("fairness audit describes itself", ok,
+                        f"applicable={own.get('applicable')} delta={own.get('delta')}"))
+        print(("  PASS  " if ok else "  FAIL  ")
+              + f"fairness audit describes itself  [applicable={own.get('applicable')}]")
+    # And the demo recruiter, who does own assessed applications, gets the real audit.
+    demo = check("fairness audit (demo recruiter)", "POST", "/auth/login", 200,
+                 body={"email": "recruiter@hire.dev", "password": "demo1234"})
+    demo_token = (demo or {}).get("token")
+    audit = check("fairness audit", "GET", "/audit/fairness", 200, token=demo_token or rt)
     if isinstance(audit, dict):
-        fair_ok = (audit.get("delta") == 0 and audit.get("passed") is True
+        fair_ok = (audit.get("applicable") is True and audit.get("delta") == 0
+                   and audit.get("passed") is True
                    and audit.get("candidate") and audit.get("job")
+                   and len(audit.get("checks") or []) == 5
                    and all(c.get("identical") for c in audit.get("checks") or []))
         results.append(("fairness audit is self-describing and stable", fair_ok,
                         f"baseline {audit.get('baseline')} delta {audit.get('delta')}"))

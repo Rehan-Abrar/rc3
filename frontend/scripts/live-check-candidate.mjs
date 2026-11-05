@@ -18,7 +18,7 @@ page.on('response', (r) => {
   if (r.url().includes('/api/') && r.status() >= 400) errors.push('http ' + r.status() + ' ' + r.url())
 })
 
-await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.goto(BASE + '/login', { waitUntil: 'networkidle' })
 await page.getByLabel(/work email|email/i).first().fill(process.env.EMAIL ?? 'rehan@rc3.dev')
 await page.getByLabel(/password/i).first().fill(process.env.PASSWORD ?? 'demo1234')
 await page.getByRole('button', { name: 'Sign in' }).click()

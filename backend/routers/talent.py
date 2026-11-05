@@ -274,8 +274,14 @@ def fairness_audit(job_id: int | None = None, db: Session = Depends(get_db),
             .where(m.Application.job_id == job_id)
             .order_by(m.Assessment.overall.desc())).first()
     if not app_row:
-        raise HTTPException(status.HTTP_409_CONFLICT,
-                            "No assessed application yet - seed the demo data first")
+        # A recruiter who owns nothing yet must get an honest empty answer, not a fake 0.0
+        # that reads like a failed fairness check.
+        return {"passed": True, "applicable": False, "baseline": None, "perturbed": None,
+                "delta": 0.0, "checks": [], "candidate": None, "job": None,
+                "note": ("You have no assessed applications to audit yet. Create a job, add a "
+                         "candidate and let the assessment run; this page then re-scores that "
+                         "résumé with gender, name, age, marital status and nationality changed "
+                         "and shows that the score does not move.")}
     app_row, assessment = app_row
     resume = db.get(m.Resume, app_row.resume_id)
     job = db.get(m.Job, app_row.job_id)
@@ -331,7 +337,7 @@ def fairness_audit(job_id: int | None = None, db: Session = Depends(get_db),
     removed = fairness.scoring_view(texts["baseline"])
     protected_removed = ("@example.com" not in removed) and ("+92" not in removed)
     passed = protected_removed and worst < 0.05
-    return {"passed": bool(passed), "baseline": baseline,
+    return {"passed": bool(passed), "applicable": True, "baseline": baseline,
             "perturbed": round(min([c["perturbed"] for c in checks] or [baseline]), 2),
             "delta": round(worst, 2), "checks": checks,
             "candidate": cand_name,
