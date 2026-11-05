@@ -1,0 +1,14 @@
+[
+  { "id": 1, "title": "Backend Developer", "department": "Engineering", "location": "Lahore, PK",
+    "employment_type": "full_time", "salary_min": 150000, "salary_max": 250000, "status": "open",
+    "created_at": "2026-11-05T04:30:00Z", "updated_at": "2026-11-05T04:30:00Z",
+    "applicant_count": 3, "shortlisted_count": 1, "interview_count": 1 },
+  { "id": 2, "title": "Frontend Engineer", "department": "Engineering", "location": "Remote",
+    "employment_type": "contract", "salary_min": 120000, "salary_max": 200000, "status": "open",
+    "created_at": "2026-11-05T04:35:00Z", "updated_at": "2026-11-05T04:35:00Z",
+    "applicant_count": 1, "shortlisted_count": 0, "interview_count": 0 },
+  { "id": 3, "title": "QA Automation Engineer", "department": "Quality", "location": "Lahore, PK",
+    "employment_type": "full_time", "salary_min": 90000, "salary_max": 140000, "status": "closed",
+    "created_at": "2026-11-02T09:00:00Z", "updated_at": "2026-11-05T03:00:00Z",
+    "applicant_count": 0, "shortlisted_count": 0, "interview_count": 0 }
+]

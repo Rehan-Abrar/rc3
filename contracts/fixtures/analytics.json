@@ -1,0 +1,12 @@
+{ "active_jobs": 2, "applications": 4, "shortlisted": 1, "pending_reviews": 2, "interviews": 1,
+  "shortlist_rate": 25.0, "avg_processing_hours": 3.4,
+  "by_job": [
+    { "job_id": 1, "title": "Backend Developer", "applications": 3, "shortlisted": 1, "interviews": 1 },
+    { "job_id": 2, "title": "Frontend Engineer", "applications": 1, "shortlisted": 0, "interviews": 0 }
+  ],
+  "by_stage": [
+    { "stage": "submitted", "count": 0 }, { "stage": "parsed", "count": 0 }, { "stage": "assessed", "count": 1 },
+    { "stage": "recruiter_review", "count": 2 }, { "stage": "shortlisted", "count": 1 },
+    { "stage": "interview", "count": 1 }, { "stage": "rejected", "count": 0 }, { "stage": "selected", "count": 0 }
+  ],
+  "common_gaps": [ { "skill": "Docker", "count": 2 }, { "skill": "Django", "count": 1 }, { "skill": "PostgreSQL", "count": 1 } ] }

@@ -1,0 +1,5 @@
+[
+  { "id": 1, "application_id": 1, "candidate_name": "Ayesha Khan", "job_title": "Backend Developer",
+    "scheduled_at": "2026-11-06T06:00:00Z", "duration_min": 45, "interviewer_id": 1, "interviewer_name": "Rehan Abrar",
+    "interview_type": "technical", "location": "Google Meet", "status": "scheduled", "conflict_flag": false }
+]

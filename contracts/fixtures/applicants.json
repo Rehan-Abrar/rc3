@@ -1,0 +1,20 @@
+[
+  { "application_id": 1, "job_id": 1, "stage": "shortlisted",
+    "candidate": { "id": 2, "name": "Ayesha Khan", "email": "ayesha.khan@example.com" },
+    "resume_id": 1, "resume_filename": "ayesha_khan.pdf",
+    "score": { "overall": 88.4, "skills": 92.0, "experience": 100.0, "projects": 78.5, "qualifications": 100.0,
+      "confidence": "high", "insufficient_evidence": false, "ai_mode": "groq", "embedding_mode": "dense", "model": "llama-3.3-70b-versatile" },
+    "matched": ["Python", "Django", "PostgreSQL", "Docker", "REST API"], "missing": [], "has_notes": true },
+  { "application_id": 2, "job_id": 1, "stage": "recruiter_review",
+    "candidate": { "id": 3, "name": "Bilal Ahmed", "email": "bilal.ahmed@example.com" },
+    "resume_id": 2, "resume_filename": "bilal_ahmed.pdf",
+    "score": { "overall": 61.7, "skills": 62.5, "experience": 66.7, "projects": 58.0, "qualifications": 100.0,
+      "confidence": "medium", "insufficient_evidence": false, "ai_mode": "groq", "embedding_mode": "dense", "model": "llama-3.3-70b-versatile" },
+    "matched": ["Python", "PostgreSQL", "REST API"], "missing": ["Django", "Docker"], "has_notes": false },
+  { "application_id": 3, "job_id": 1, "stage": "assessed",
+    "candidate": { "id": 4, "name": "Sana Iqbal", "email": "sana.iqbal@example.com" },
+    "resume_id": 3, "resume_filename": "sana_iqbal.pdf",
+    "score": { "overall": 42.1, "skills": 30.0, "experience": 40.0, "projects": 66.0, "qualifications": 100.0,
+      "confidence": "low", "insufficient_evidence": true, "ai_mode": "groq", "embedding_mode": "dense", "model": "llama-3.3-70b-versatile" },
+    "matched": ["Python"], "missing": ["Django", "PostgreSQL", "Docker"], "has_notes": false }
+]

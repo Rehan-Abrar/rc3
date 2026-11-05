@@ -1,0 +1,11 @@
+[
+  { "id": 1, "application_id": 1, "difficulty": "intermediate", "category": "skill", "source": "ai",
+    "text": "In your Nordvale work you cut p95 latency from 900ms to 180ms. Walk me through the slow queries you found and the index changes you made.",
+    "guideline": "Expects: EXPLAIN ANALYZE usage, composite index choice, N+1 elimination, connection pooling. Weak answer only names indexes without measurement.", "created_at": "2026-11-05T04:45:00Z" },
+  { "id": 2, "application_id": 1, "difficulty": "advanced", "category": "project", "source": "ai",
+    "text": "You containerised all services with Docker for a partner-facing REST API. How did you handle zero-downtime migrations while the schema changed?",
+    "guideline": "Expects: expand/contract migration strategy, backwards-compatible fields, deploy ordering, rollback plan. Weak answer: 'we ran migrations on deploy'.", "created_at": "2026-11-05T04:45:00Z" },
+  { "id": 3, "application_id": 1, "difficulty": "beginner", "category": "experience", "source": "ai",
+    "text": "Describe the Django models you owned at Nordvale and how you kept business logic out of views.",
+    "guideline": "Expects: model layer, services/selectors pattern, serializers for validation. Weak answer: everything in views.", "created_at": "2026-11-05T04:45:00Z" }
+]
